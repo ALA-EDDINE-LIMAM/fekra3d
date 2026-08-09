@@ -368,7 +368,7 @@ const sendOrderConfirmationEmail = async (order) => {
       return null;
     }
 
-    console.error('Error sending order confirmation email:', error?.message || error);
+    console.error('Error sending order confirmation email:', error?.message || error, error?.responseBody || '');
     return null;
   }
 };
