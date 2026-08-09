@@ -55,6 +55,7 @@ const contactRoutes = require('./routes/contact');
 const customRequestRoutes = require('./routes/customRequests');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Restrict CORS origins
 const allowedOrigins = [
