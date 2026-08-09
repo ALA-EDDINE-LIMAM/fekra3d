@@ -140,13 +140,7 @@ export default function CheckoutPage() {
             Nous vous contacterons dans les plus brefs délais pour la confirmation et la livraison.
           </p>
 
-          {emailSent !== null && (
-            <div className={`mb-6 max-w-md w-full rounded-xl border px-4 py-3 text-sm ${emailSent ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200' : 'border-amber-500/30 bg-amber-500/10 text-amber-200'}`}>
-              {emailSent
-                ? 'Le mail de confirmation a été accepté par le serveur SMTP.'
-                : "La commande est enregistrée, mais le serveur SMTP n'a pas confirmé l'envoi du mail."}
-            </div>
-          )}
+
 
           {trackingCode && (
             <div className="w-full max-w-md p-6 mb-8 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 backdrop-blur-sm space-y-4">
@@ -325,7 +319,7 @@ export default function CheckoutPage() {
               {cartItems.map((item, idx) => (
                 <div key={item.id || idx} className="flex items-center gap-4">
                   <div className="relative w-16 h-16 rounded-lg bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/10 overflow-hidden flex-shrink-0">
-                    {item.product?.image_url && <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />}
+                    {(item.product?.image || item.product?.image_url) && <img src={item.product.image || item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />}
                     <span className="absolute -top-2 -right-2 bg-slate-600 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full z-10">
                       {item.quantity}
                     </span>
