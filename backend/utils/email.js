@@ -99,10 +99,6 @@ const getBrevoApiKey = () => {
       }
     }
   }
-  
-  if (process.env.SMTP_PASS && String(process.env.SMTP_PASS).startsWith('xsmtpsib-')) {
-    return String(process.env.SMTP_PASS).trim();
-  }
 
   return '';
 };
