@@ -93,7 +93,10 @@ const getBrevoApiKey = () => {
 
   for (const candidate of candidates) {
     if (candidate && String(candidate).trim()) {
-      return String(candidate).trim();
+      const trimmed = String(candidate).trim();
+      if (trimmed !== 'your_brevo_transactional_api_key' && trimmed !== 'your_api_key') {
+        return trimmed;
+      }
     }
   }
   
