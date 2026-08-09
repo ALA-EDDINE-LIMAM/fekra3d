@@ -29,5 +29,8 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "vite": "^7.1.0"
+  },
+  "overrides": {
+    "three": "0.183.1"
   }
 }
