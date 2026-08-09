@@ -66,7 +66,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-white">Email</h3>
-                  <p className="text-slate-300">contact@fekra3d.com</p>
+                  <p className="text-slate-300">fekra3d.printing@gmail.com</p>
                 </div>
               </div>
 
@@ -76,17 +76,32 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-white">Téléphone</h3>
-                  <p className="text-slate-300">+216 55 555 555</p>
+                  <p className="text-slate-300">+216 55 084 823</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-5">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/10 text-[#47d7c6] backdrop-blur-md">
-                  <MapPin size={24} />
+              <div className="flex items-start gap-5 flex-col">
+                <div className="flex items-center gap-5">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/10 text-[#47d7c6] backdrop-blur-md">
+                    <MapPin size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg text-white">Atelier</h3>
+                    <p className="text-slate-300">Kélibia, Tunisie</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-lg text-white">Atelier</h3>
-                  <p className="text-slate-300">Ariana, Tunisie</p>
+                <div className="w-full mt-2 rounded-xl overflow-hidden shadow-lg border border-white/10">
+                  <iframe 
+                    src="https://maps.google.com/maps?q=Kélibia,+Tunisia&t=&z=14&ie=UTF8&iwloc=&output=embed" 
+                    width="100%" 
+                    height="180" 
+                    frameBorder="0" 
+                    style={{ border: 0 }} 
+                    allowFullScreen="" 
+                    aria-hidden="false" 
+                    tabIndex="0">
+                  </iframe>
+                  <a href="https://maps.app.goo.gl/DryuVUZxhdo1K9M4A" target="_blank" rel="noopener noreferrer" className="block w-full bg-white/5 hover:bg-white/10 transition-colors text-center py-2 text-sm text-[#47d7c6] font-medium border-t border-white/10">Ouvrir dans Google Maps</a>
                 </div>
               </div>
             </div>

@@ -62,7 +62,7 @@ const getSenderIdentity = () => {
 
   return {
     name: 'Fekra 3D',
-    email: 'contact@fekra3d.com',
+    email: 'fekra3d.printing@gmail.com',
   };
 };
 
@@ -383,7 +383,7 @@ const sendContactEmail = async ({ name, email, subject, message }) => {
     `;
 
     await sendTransactionalEmail({
-      to: process.env.CONTACT_EMAIL || 'alaeddine.limam@issatm.ucar.tn',
+      to: process.env.CONTACT_EMAIL || 'fekra3d.printing@gmail.com',
       replyTo: `"${name}" <${email}>`,
       subject: `[Formulaire Contact] ${subject || 'Nouveau message'}`,
       html: htmlContent,
