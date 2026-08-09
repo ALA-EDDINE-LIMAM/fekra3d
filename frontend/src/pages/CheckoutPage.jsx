@@ -250,7 +250,18 @@ export default function CheckoutPage() {
               <label className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-colors ${formData.shippingMethod === 'pickup' ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/40 hover:bg-slate-100 dark:hover:bg-white/5'}`}>
                 <div className="flex items-center gap-3">
                   <input type="radio" name="shippingMethod" value="pickup" checked={formData.shippingMethod === 'pickup'} onChange={handleInputChange} className="w-4 h-4 text-emerald-500" />
-                  <span className="text-slate-900 dark:text-white font-medium">Retrait magasin</span>
+                  <div className="flex flex-col">
+                    <span className="text-slate-900 dark:text-white font-medium">Retrait magasin</span>
+                    <a href="https://maps.app.goo.gl/DryuVUZxhdo1K9M4A" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-sm text-emerald-500 hover:underline mt-0.5">Position sur la carte</a>
+                  </div>
+                </div>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">Gratuit</span>
+              </label>
+
+              <label className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-colors ${formData.shippingMethod === 'home_local' ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/40 hover:bg-slate-100 dark:hover:bg-white/5'}`}>
+                <div className="flex items-center gap-3">
+                  <input type="radio" name="shippingMethod" value="home_local" checked={formData.shippingMethod === 'home_local'} onChange={handleInputChange} className="w-4 h-4 text-emerald-500" />
+                  <span className="text-slate-900 dark:text-white font-medium">Livraison à Kélibia / Menzel Temim</span>
                 </div>
                 <span className="text-emerald-600 dark:text-emerald-400 font-bold">Gratuit</span>
               </label>
@@ -258,7 +269,7 @@ export default function CheckoutPage() {
               <label className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-colors ${formData.shippingMethod === 'home' ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/40 hover:bg-slate-100 dark:hover:bg-white/5'}`}>
                 <div className="flex items-center gap-3">
                   <input type="radio" name="shippingMethod" value="home" checked={formData.shippingMethod === 'home'} onChange={handleInputChange} className="w-4 h-4 text-emerald-500" />
-                  <span className="text-slate-900 dark:text-white font-medium">Livraison à domicile</span>
+                  <span className="text-slate-900 dark:text-white font-medium">Livraison à domicile (Distance {'>'} 15km)</span>
                 </div>
                 <span className="text-emerald-600 dark:text-emerald-400 font-bold">7,000 TND</span>
               </label>

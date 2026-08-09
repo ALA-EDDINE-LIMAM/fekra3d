@@ -17,3 +17,11 @@ Order confirmation email delivery status: {
   response: '250 2.0.0 OK: queued as <c66574dc-e466-9688-58c5-a0437b46fa67@gmail.com>',
   messageId: '<c66574dc-e466-9688-58c5-a0437b46fa67@gmail.com>'
 }
+Order confirmation email delivery status: {
+  to: 'alaalimam07@gmail.com',
+  from: '"fekra3d" <fekra3d.printing@gmail.com>',
+  accepted: [ 'alaalimam07@gmail.com' ],
+  rejected: [],
+  response: '250 2.0.0 OK: queued as <db320b03-3489-0ace-2ba0-c530e8c92fb5@gmail.com>',
+  messageId: '<db320b03-3489-0ace-2ba0-c530e8c92fb5@gmail.com>'
+}
