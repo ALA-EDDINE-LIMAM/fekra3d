@@ -1,0 +1,19 @@
+◇ injected env (11) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+Database synced successfully
+Server is running on port 5000
+Order confirmation email delivery status: {
+  to: 'alaalimam07@gmail.com',
+  from: '"fekra3d" <fekra3d.printing@gmail.com>',
+  accepted: [ 'alaalimam07@gmail.com' ],
+  rejected: [],
+  response: '250 2.0.0 OK: queued as <ee8a3d95-f762-cfc1-f8b1-11ec5d90e8e4@gmail.com>',
+  messageId: '<ee8a3d95-f762-cfc1-f8b1-11ec5d90e8e4@gmail.com>'
+}
+Order confirmation email delivery status: {
+  to: 'alaalimam07@gmail.com',
+  from: '"fekra3d" <fekra3d.printing@gmail.com>',
+  accepted: [ 'alaalimam07@gmail.com' ],
+  rejected: [],
+  response: '250 2.0.0 OK: queued as <c66574dc-e466-9688-58c5-a0437b46fa67@gmail.com>',
+  messageId: '<c66574dc-e466-9688-58c5-a0437b46fa67@gmail.com>'
+}
