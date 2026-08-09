@@ -12,7 +12,6 @@ export default function Footer() {
             <div className="mt-5 flex flex-wrap gap-3 text-sm text-slate-600 dark:text-slate-400">
               <span className="rounded-full border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-3 py-1">Impression 3D</span>
               <span className="rounded-full border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-3 py-1">Sur mesure</span>
-              <span className="rounded-full border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-3 py-1">Livraison rapide</span>
             </div>
           </div>
 
