@@ -10,6 +10,19 @@ const authMiddleware = require('../utils/auth');
 // In-memory store for pending PIN authentication challenges (challengeId -> challenge data)
 const pinChallenges = new Map();
 
+// Generate cryptographically secure 6-character uppercase alphanumeric security code (Numbers & Letters)
+const generateSecurePinCode = () => {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // Exclude ambiguous chars (0, O, 1, I)
+  let code = '';
+  const bytes = crypto.randomBytes(6);
+  for (let i = 0; i < 6; i++) {
+    code += chars[bytes[i] % chars.length];
+  }
+  return code;
+};
+
+const PIN_EXPIRATION_MS = 60 * 1000; // 1 Minute (60 seconds)
+
 // Helper to mask email address for privacy (e.g., ahmed.espironza@gmail.com -> a***a@gmail.com)
 const maskEmail = (email) => {
   if (!email || !email.includes('@')) return 'admin@***.com';
@@ -26,7 +39,7 @@ setInterval(() => {
       pinChallenges.delete(challengeId);
     }
   }
-}, 5 * 60 * 1000);
+}, 30 * 1000);
 
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
@@ -66,10 +79,10 @@ router.post('/login', async (req, res) => {
   }
 
   if (isValidPassword && adminEmail) {
-    // Generate cryptographically secure 6-digit PIN
-    const pinCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate cryptographically secure 6-character alphanumeric PIN
+    const pinCode = generateSecurePinCode();
     const challengeId = crypto.randomBytes(16).toString('hex');
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes validity
+    const expiresAt = Date.now() + PIN_EXPIRATION_MS; // 1 minute validity
 
     pinChallenges.set(challengeId, {
       username: adminUsername,
@@ -90,7 +103,8 @@ router.post('/login', async (req, res) => {
       step: 'PIN_REQUIRED',
       challengeId,
       maskedEmail: maskEmail(adminEmail),
-      message: `Un code PIN à 6 chiffres a été envoyé à l'adresse ${maskEmail(adminEmail)}.`
+      expiresInSeconds: 60,
+      message: `Un code de sécurité alphanumeric (6 caractères) a été envoyé à ${maskEmail(adminEmail)}. Il expire dans 1 minute.`
     });
   }
 
@@ -102,7 +116,7 @@ router.post('/verify-pin', async (req, res) => {
   const jwtSecret = (process.env.JWT_SECRET || 'fallback-secret-key').trim();
 
   if (!challengeId || !pin) {
-    return res.status(400).json({ error: 'Identifiant de session ou code PIN manquant.' });
+    return res.status(400).json({ error: 'Identifiant de session ou code de sécurité manquant.' });
   }
 
   const challenge = pinChallenges.get(challengeId);
@@ -113,7 +127,7 @@ router.post('/verify-pin', async (req, res) => {
 
   if (Date.now() > challenge.expiresAt) {
     pinChallenges.delete(challengeId);
-    return res.status(401).json({ error: 'Code PIN expiré (valide 10 min). Veuillez vous reconnecter.' });
+    return res.status(401).json({ error: 'Code de sécurité expiré (valide 1 minute). Veuillez cliquer sur Renvoyer.' });
   }
 
   if (challenge.attempts >= 5) {
@@ -121,9 +135,9 @@ router.post('/verify-pin', async (req, res) => {
     return res.status(429).json({ error: 'Trop de tentatives incorrectes. Session annulée.' });
   }
 
-  if (challenge.pin.trim() !== String(pin).trim()) {
+  if (challenge.pin.toUpperCase() !== String(pin).trim().toUpperCase()) {
     challenge.attempts += 1;
-    return res.status(401).json({ error: 'Code PIN incorrect. Veuillez réessayer.' });
+    return res.status(401).json({ error: 'Code de sécurité incorrect. Veuillez réessayer.' });
   }
 
   // PIN verified successfully! Issue signed JWT token
@@ -147,22 +161,24 @@ router.post('/resend-pin', async (req, res) => {
 
   const challenge = pinChallenges.get(challengeId);
 
-  if (!challenge || Date.now() > challenge.expiresAt) {
+  if (!challenge) {
     return res.status(401).json({ error: 'Session expirée. Veuillez vous reconnecter.' });
   }
 
-  // Generate a fresh PIN code
-  const newPinCode = Math.floor(100000 + Math.random() * 900000).toString();
+  // Generate a fresh alphanumeric security code & reset 60-second timer
+  const newPinCode = generateSecurePinCode();
   challenge.pin = newPinCode;
-  challenge.expiresAt = Date.now() + 10 * 60 * 1000;
+  challenge.expiresAt = Date.now() + PIN_EXPIRATION_MS;
   challenge.attempts = 0;
 
   await sendPinCodeEmail(challenge.email, newPinCode);
 
   return res.json({
-    message: `Nouveau code PIN envoyé à ${maskEmail(challenge.email)}.`
+    expiresInSeconds: 60,
+    message: `Nouveau code de sécurité (1 min) envoyé à ${maskEmail(challenge.email)}.`
   });
 });
+
 
 router.get('/verify', (req, res) => {
   const authHeader = req.headers.authorization;

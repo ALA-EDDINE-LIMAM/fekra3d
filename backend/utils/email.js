@@ -414,11 +414,11 @@ const sendPinCodeEmail = async (email, pinCode) => {
           <p style="color: #94a3b8; font-size: 14px; margin-top: 5px;">Authentification Sécurisée Administrateur</p>
         </div>
         <div style="background-color: rgba(255, 255, 255, 0.05); padding: 25px; border-radius: 12px; text-align: center; margin-bottom: 25px; border: 1px solid rgba(255,255,255,0.05);">
-          <p style="color: #cbd5e1; font-size: 14px; margin-top: 0;">Voici votre code PIN à 6 chiffres pour vous connecter à l'espace administration :</p>
-          <div style="font-size: 38px; font-weight: 800; letter-spacing: 10px; color: #10b981; margin: 20px 0; font-family: 'Courier New', Courier, monospace; background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 10px; display: inline-block;">
+          <p style="color: #cbd5e1; font-size: 14px; margin-top: 0;">Voici votre code de sécurité alphanumeric (6 caractères) :</p>
+          <div style="font-size: 38px; font-weight: 800; letter-spacing: 10px; color: #10b981; margin: 20px 0; font-family: 'Courier New', Courier, monospace; background: rgba(16, 185, 129, 0.1); padding: 12px 20px; border-radius: 10px; display: inline-block;">
             ${pinCode}
           </div>
-          <p style="color: #64748b; font-size: 12px; margin-bottom: 0;">⏱️ Ce code expire dans <strong>10 minutes</strong>. Ne le partagez avec personne.</p>
+          <p style="color: #ef4444; font-size: 13px; font-weight: bold; margin-bottom: 0;">⏱️ Ce code expire dans 1 MINUTE (60s). Ne le partagez avec personne.</p>
         </div>
         <p style="color: #64748b; font-size: 11px; text-align: center; margin: 0; line-height: 1.5;">
           Si vous n'êtes pas à l'origine de cette demande de connexion, veuillez ignorer cet email.
@@ -428,6 +428,7 @@ const sendPinCodeEmail = async (email, pinCode) => {
 
     return await sendTransactionalEmail({
       to: email,
+
       subject: `🔒 Code PIN Admin Fekra 3D : ${pinCode}`,
       html: htmlContent,
       text: `Votre code PIN d'accès Administrateur Fekra 3D est : ${pinCode}. Ce code expire dans 10 minutes.`,

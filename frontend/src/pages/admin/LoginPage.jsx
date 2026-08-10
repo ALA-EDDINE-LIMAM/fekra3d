@@ -1,21 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiBaseUrl } from '../../services/api';
 import { ADMIN_PATH } from '../../config/adminConfig';
-import { Lock, User, AlertCircle, Loader2, KeyRound, ArrowLeft, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Lock, User, AlertCircle, Loader2, KeyRound, ArrowLeft, RefreshCw, CheckCircle2, Timer, ShieldAlert } from 'lucide-react';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [pin, setPin] = useState(['', '', '', '', '', '']);
-  const [step, setStep] = useState(1); // 1 = Credentials, 2 = 6-Digit PIN
+  const [step, setStep] = useState(1); // 1 = Credentials, 2 = 6-Character Alphanumeric Security Code
   const [challengeId, setChallengeId] = useState('');
   const [maskedEmail, setMaskedEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [infoMessage, setInfoMessage] = useState('');
   const [error, setError] = useState('');
+  const [timeLeft, setTimeLeft] = useState(60); // 60 seconds countdown
   const navigate = useNavigate();
+
+  // Countdown timer effect when in step 2
+  useEffect(() => {
+    if (step !== 2) return;
+
+    if (timeLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [step, timeLeft]);
 
   const handleCredentialsSubmit = async (e) => {
     e.preventDefault();
@@ -39,10 +53,10 @@ export default function LoginPage() {
       if (data.step === 'PIN_REQUIRED') {
         setChallengeId(data.challengeId);
         setMaskedEmail(data.maskedEmail);
-        setInfoMessage(data.message || `Un code PIN a été envoyé à ${data.maskedEmail}`);
+        setInfoMessage(data.message || `Un code de sécurité a été envoyé à ${data.maskedEmail}`);
+        setTimeLeft(60); // Start 60s countdown
         setStep(2);
       } else if (data.token) {
-        // Fallback for direct token issue
         localStorage.setItem('admin_token', data.token);
         localStorage.setItem('admin_user', data.username);
         navigate(ADMIN_PATH);
@@ -56,9 +70,14 @@ export default function LoginPage() {
 
   const handlePinSubmit = async (e) => {
     e.preventDefault();
-    const pinString = pin.join('');
+    const pinString = pin.join('').toUpperCase();
     if (pinString.length !== 6) {
-      setError('Veuillez saisir les 6 chiffres du code PIN.');
+      setError('Veuillez saisir les 6 caractères du code de sécurité.');
+      return;
+    }
+
+    if (timeLeft <= 0) {
+      setError('Le code de sécurité a expiré (valide 1 minute). Veuillez demander un nouveau code.');
       return;
     }
 
@@ -75,7 +94,7 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Code PIN invalide.');
+        throw new Error(data.error || 'Code de sécurité invalide.');
       }
 
       localStorage.setItem('admin_token', data.token);
@@ -100,11 +119,12 @@ export default function LoginPage() {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || 'Impossible de renvoyer le code PIN.');
+        throw new Error(data.error || 'Impossible de renvoyer le code.');
       }
 
       setInfoMessage(data.message);
       setPin(['', '', '', '', '', '']);
+      setTimeLeft(60); // Reset 60s countdown
       const firstInput = document.getElementById('pin-0');
       if (firstInput) firstInput.focus();
     } catch (err) {
@@ -115,14 +135,16 @@ export default function LoginPage() {
   };
 
   const handlePinChange = (index, value) => {
-    if (!/^\d*$/.test(value)) return;
+    // Allow uppercase letters and numbers (A-Z, 0-9)
+    const upperVal = value.toUpperCase();
+    if (!/^[A-Z0-9]*$/.test(upperVal)) return;
 
     const newPin = [...pin];
-    newPin[index] = value.slice(-1);
+    newPin[index] = upperVal.slice(-1);
     setPin(newPin);
 
     // Auto-advance to next input box
-    if (value && index < 5) {
+    if (upperVal && index < 5) {
       const nextInput = document.getElementById(`pin-${index + 1}`);
       if (nextInput) nextInput.focus();
     }
@@ -137,10 +159,10 @@ export default function LoginPage() {
 
   const handlePaste = (e) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').trim();
-    if (/^\d{6}$/.test(pastedData)) {
-      const digits = pastedData.split('');
-      setPin(digits);
+    const pastedData = e.clipboardData.getData('text').trim().toUpperCase();
+    if (/^[A-Z0-9]{6}$/.test(pastedData)) {
+      const chars = pastedData.split('');
+      setPin(chars);
       const lastInput = document.getElementById('pin-5');
       if (lastInput) lastInput.focus();
     }
@@ -161,7 +183,7 @@ export default function LoginPage() {
           <p className="mt-3 text-sm text-slate-400">
             {step === 1 
               ? 'Connectez-vous pour gérer la plateforme Fekra 3D.' 
-              : `Code PIN à 6 chiffres envoyé à ${maskedEmail}`}
+              : `Code de sécurité 2FA envoyé à ${maskedEmail}`}
           </p>
         </div>
 
@@ -194,7 +216,7 @@ export default function LoginPage() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="w-full rounded-xl border border-white/10 bg-black/40 py-3 pl-11 pr-4 text-white outline-none focus:border-emerald-500/50 transition-colors"
-                    placeholder="admin"
+                    placeholder="ahmed.espironza@gmail.com"
                   />
                 </div>
               </div>
@@ -225,7 +247,7 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
-                  Envoi du code PIN...
+                  Envoi du code...
                 </>
               ) : (
                 'Continuer'
@@ -235,8 +257,31 @@ export default function LoginPage() {
         ) : (
           <form className="mt-8 space-y-6" onSubmit={handlePinSubmit}>
             <div>
+              {/* Countdown Timer Badge */}
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                  timeLeft > 15
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                    : timeLeft > 0
+                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/30 animate-pulse'
+                    : 'bg-red-500/10 text-red-400 border-red-500/30'
+                }`}>
+                  {timeLeft > 0 ? (
+                    <>
+                      <Timer size={14} className="animate-spin" />
+                      Code valide pendant : 00:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
+                    </>
+                  ) : (
+                    <>
+                      <ShieldAlert size={14} />
+                      Code expiré (1 min écoulée)
+                    </>
+                  )}
+                </span>
+              </div>
+
               <label className="text-sm font-medium text-slate-300 block text-center mb-4">
-                Saisissez le code PIN à 6 chiffres :
+                Saisissez le code alphanumeric (Chiffres & Lettres) :
               </label>
               
               <div className="flex justify-center gap-2" onPaste={handlePaste}>
@@ -245,12 +290,11 @@ export default function LoginPage() {
                     key={idx}
                     id={`pin-${idx}`}
                     type="text"
-                    inputMode="numeric"
                     maxLength={1}
                     value={digit}
                     onChange={(e) => handlePinChange(idx, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(idx, e)}
-                    className="w-11 h-13 text-center text-xl font-bold rounded-xl border border-white/15 bg-black/50 text-emerald-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 outline-none transition-all"
+                    className="w-11 h-13 text-center text-xl font-bold rounded-xl border border-white/15 bg-black/50 text-emerald-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 outline-none transition-all uppercase"
                     autoFocus={idx === 0}
                   />
                 ))}
@@ -260,16 +304,16 @@ export default function LoginPage() {
             <div className="space-y-3">
               <button
                 type="submit"
-                disabled={loading || pin.join('').length !== 6}
+                disabled={loading || pin.join('').length !== 6 || timeLeft <= 0}
                 className="w-full flex justify-center items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 py-3.5 px-4 text-slate-950 font-bold text-base transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-[#07111d] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>
                     <Loader2 size={18} className="animate-spin" />
-                    Vérification du PIN...
+                    Vérification du Code...
                   </>
                 ) : (
-                  'Valider le Code PIN'
+                  'Valider le Code de Sécurité'
                 )}
               </button>
 
@@ -287,10 +331,10 @@ export default function LoginPage() {
                   type="button"
                   onClick={handleResendPin}
                   disabled={resending}
-                  className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-semibold transition-colors disabled:opacity-50"
                 >
                   <RefreshCw size={14} className={resending ? 'animate-spin' : ''} />
-                  Renvoyer le PIN
+                  Renvoyer un nouveau code
                 </button>
               </div>
             </div>
@@ -300,4 +344,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
