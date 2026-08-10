@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import AdminShell from '../../components/AdminShell';
 import { apiBaseUrl } from '../../services/api';
-import { UserPlus, Trash2, ShieldCheck, Mail, User, Lock, AlertCircle, CheckCircle2, Loader2, Shield, KeyRound, Timer, ShieldAlert, RefreshCw } from 'lucide-react';
+import { UserPlus, Trash2, ShieldCheck, Mail, User, Lock, AlertCircle, CheckCircle2, Loader2, Shield, KeyRound, Timer, ShieldAlert, RefreshCw, X } from 'lucide-react';
 
 export default function AdminSettingsPage() {
   const [admins, setAdmins] = useState([]);
@@ -14,8 +14,8 @@ export default function AdminSettingsPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Password Change State (2FA Protected)
-  const [passStep, setPassStep] = useState(1); // 1 = Request PIN, 2 = Enter PIN & New Password
+  // Password Change Modal State (2FA Protected)
+  const [selectedAdminForReset, setSelectedAdminForReset] = useState(null); // admin object
   const [passChallengeId, setPassChallengeId] = useState('');
   const [passMaskedEmail, setPassMaskedEmail] = useState('');
   const [passPin, setPassPin] = useState(['', '', '', '', '', '']);
@@ -28,12 +28,12 @@ export default function AdminSettingsPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Timer for password change
+  // Timer for password change modal
   useEffect(() => {
-    if (passStep !== 2 || passTimeLeft <= 0) return;
+    if (!selectedAdminForReset || passTimeLeft <= 0) return;
     const timer = setInterval(() => setPassTimeLeft((prev) => prev - 1), 1000);
     return () => clearInterval(timer);
-  }, [passStep, passTimeLeft]);
+  }, [selectedAdminForReset, passTimeLeft]);
 
   const fetchAdmins = async () => {
     try {
@@ -125,17 +125,21 @@ export default function AdminSettingsPage() {
     }
   };
 
-  // Password Change Handler (2FA Email Protected)
-  const handleRequestPasswordChange = async () => {
+  // Open Password Change Modal & Request 2FA PIN for target Admin
+  const handleOpenPasswordResetModal = async (targetAdmin) => {
     setError('');
     setSuccess('');
+    setSelectedAdminForReset(targetAdmin);
+    setPassPin(['', '', '', '', '', '']);
+    setNewPassword('');
+    setConfirmPassword('');
     setPassLoading(true);
 
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch(`${apiBaseUrl}/api/auth/change-password-request`, {
+      const response = await fetch(`${apiBaseUrl}/api/auth/request-password-reset`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: targetAdmin.email })
       });
 
       const data = await response.json();
@@ -147,19 +151,18 @@ export default function AdminSettingsPage() {
       setPassChallengeId(data.challengeId);
       setPassMaskedEmail(data.maskedEmail);
       setPassTimeLeft(60);
-      setPassStep(2);
-      setSuccess(`Code de sécurité 2FA envoyé à ${data.maskedEmail}. Entrez le code pour valider le changement.`);
+      setSuccess(`Un code PIN 2FA a été envoyé à l'adresse ${data.maskedEmail}.`);
     } catch (err) {
       setError(err.message);
+      setSelectedAdminForReset(null);
     } finally {
       setPassLoading(false);
     }
   };
 
-  const handleConfirmPasswordChange = async (e) => {
+  const handleConfirmPasswordResetModal = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
 
     const pinString = passPin.join('').toUpperCase();
     if (pinString.length !== 6) {
@@ -178,7 +181,7 @@ export default function AdminSettingsPage() {
     }
 
     if (passTimeLeft <= 0) {
-      setError('Le code PIN a expiré (1 min). Cliquez sur Renvoyer pour en générer un nouveau.');
+      setError('Le code PIN a expiré (1 min). Cliquez sur Renvoyer un nouveau code.');
       return;
     }
 
@@ -201,11 +204,37 @@ export default function AdminSettingsPage() {
         throw new Error(data.error || 'Échec de la modification du mot de passe.');
       }
 
-      setSuccess('Votre mot de passe a été modifié avec succès !');
-      setPassStep(1);
+      setSuccess(`Le mot de passe de ${selectedAdminForReset.email} a été modifié avec succès !`);
+      setSelectedAdminForReset(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setPassLoading(false);
+    }
+  };
+
+  const handleResendModalPin = async () => {
+    if (!selectedAdminForReset) return;
+    setPassLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/auth/request-password-reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: selectedAdminForReset.email })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Impossible de renvoyer le code PIN.');
+      }
+
+      setPassChallengeId(data.challengeId);
       setPassPin(['', '', '', '', '', '']);
-      setNewPassword('');
-      setConfirmPassword('');
+      setPassTimeLeft(60);
+      setSuccess(`Nouveau code PIN de sécurité envoyé à ${data.maskedEmail}.`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -222,7 +251,7 @@ export default function AdminSettingsPage() {
     setPassPin(newPin);
 
     if (upper && index < 5) {
-      const nextInput = document.getElementById(`pass-pin-${index + 1}`);
+      const nextInput = document.getElementById(`modal-pass-pin-${index + 1}`);
       if (nextInput) nextInput.focus();
     }
   };
@@ -230,7 +259,7 @@ export default function AdminSettingsPage() {
   return (
     <AdminShell 
       title="Gestion des Administrateurs & Sécurité" 
-      description="Gérez les comptes d'accès et modifiez les mots de passe de manière ultra-sécurisée avec validation 2FA par email."
+      description="Ajoutez, gérez et modifiez le mot de passe des comptes administrateurs de manière ultra-sécurisée avec validation 2FA par email."
     >
       <div className="space-y-8">
 
@@ -251,11 +280,9 @@ export default function AdminSettingsPage() {
 
         <div className="grid gap-8 lg:grid-cols-3">
           
-          {/* Left Column: Forms for Add Admin & Change Password */}
-          <div className="lg:col-span-1 space-y-8">
-            
-            {/* Form 1: Add New Admin */}
-            <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 space-y-6">
+          {/* Left Column: Form to Add New Admin */}
+          <div className="lg:col-span-1">
+            <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 space-y-6 sticky top-6">
               <div className="flex items-center gap-3 border-b border-white/10 pb-4">
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                   <UserPlus size={20} />
@@ -338,137 +365,9 @@ export default function AdminSettingsPage() {
                 </button>
               </form>
             </div>
-
-            {/* Form 2: Change Password (2FA Protected) */}
-            <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-amber-500/20 rounded-3xl p-6 space-y-6">
-              <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                  <KeyRound size={20} />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-white">Changer Mon Mot de Passe</h2>
-                  <p className="text-xs text-slate-400">Sécurisé obligatoirement par code PIN Email</p>
-                </div>
-              </div>
-
-              {passStep === 1 ? (
-                <div className="space-y-4">
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    Pour modifier votre mot de passe, un code PIN de sécurité alphanumeric à 6 caractères sera envoyé à votre adresse email.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleRequestPasswordChange}
-                    disabled={passLoading}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 py-3 px-4 text-slate-950 font-bold text-sm transition-colors disabled:opacity-50 cursor-pointer"
-                  >
-                    {passLoading ? (
-                      <>
-                        <Loader2 size={18} className="animate-spin" />
-                        Envoi du code PIN...
-                      </>
-                    ) : (
-                      <>
-                        <Mail size={18} />
-                        Envoyer le Code PIN par Email
-                      </>
-                    )}
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleConfirmPasswordChange} className="space-y-4">
-                  {/* Countdown badge */}
-                  <div className="flex justify-center">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
-                      passTimeLeft > 0 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'
-                    }`}>
-                      {passTimeLeft > 0 ? (
-                        <>
-                          <Timer size={13} className="animate-spin" />
-                          PIN valide : 00:{passTimeLeft < 10 ? `0${passTimeLeft}` : passTimeLeft}
-                        </>
-                      ) : (
-                        <>
-                          <ShieldAlert size={13} />
-                          PIN expiré (1 min)
-                        </>
-                      )}
-                    </span>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-2 text-center">
-                      Code PIN 2FA (Reçu sur email)
-                    </label>
-                    <div className="flex justify-center gap-1.5">
-                      {passPin.map((char, idx) => (
-                        <input
-                          key={idx}
-                          id={`pass-pin-${idx}`}
-                          type="text"
-                          maxLength={1}
-                          value={char}
-                          onChange={(e) => handlePassPinChange(idx, e.target.value)}
-                          className="w-9 h-11 text-center font-bold text-lg rounded-lg border border-white/20 bg-black/60 text-amber-400 outline-none uppercase focus:border-amber-400"
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-2">
-                      Nouveau Mot de Passe
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      minLength={6}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full rounded-xl border border-white/10 bg-black/40 py-2.5 px-4 text-white text-sm outline-none focus:border-amber-400"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-2">
-                      Confirmer le Mot de Passe
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      minLength={6}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full rounded-xl border border-white/10 bg-black/40 py-2.5 px-4 text-white text-sm outline-none focus:border-amber-400"
-                    />
-                  </div>
-
-                  <div className="pt-2 space-y-2">
-                    <button
-                      type="submit"
-                      disabled={passLoading || passTimeLeft <= 0}
-                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 py-3 px-4 text-slate-950 font-bold text-sm transition-colors disabled:opacity-50"
-                    >
-                      {passLoading ? <Loader2 size={18} className="animate-spin" /> : 'Changer le Mot de Passe'}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleRequestPasswordChange}
-                      className="w-full text-xs text-amber-400 hover:underline flex items-center justify-center gap-1 py-1"
-                    >
-                      <RefreshCw size={12} /> Renvoyer un nouveau PIN
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
-
           </div>
 
-          {/* Right / Main: Admin List Table */}
+          {/* Right / Main: Admin List Table with Password Change Action */}
           <div className="lg:col-span-2">
             <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden">
               <div className="px-6 py-5 border-b border-white/10 bg-white/5 flex items-center justify-between">
@@ -535,19 +434,32 @@ export default function AdminSettingsPage() {
                           </td>
 
                           <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <button
-                              onClick={() => handleDeleteAdmin(admin.id, admin.email)}
-                              disabled={deletingId === admin.id || admins.length <= 1}
-                              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                              title={admins.length <= 1 ? 'Impossible de supprimer le dernier administrateur' : 'Supprimer cet administrateur'}
-                            >
-                              {deletingId === admin.id ? (
-                                <Loader2 size={14} className="animate-spin" />
-                              ) : (
-                                <Trash2 size={14} />
-                              )}
-                              Supprimer
-                            </button>
+                            <div className="flex items-center justify-end gap-2">
+                              {/* Change Password Button */}
+                              <button
+                                onClick={() => handleOpenPasswordResetModal(admin)}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-xs font-medium transition-colors cursor-pointer"
+                                title="Changer le mot de passe (nécessite le code PIN email)"
+                              >
+                                <KeyRound size={14} />
+                                Changer mot de passe
+                              </button>
+
+                              {/* Delete Admin Button */}
+                              <button
+                                onClick={() => handleDeleteAdmin(admin.id, admin.email)}
+                                disabled={deletingId === admin.id || admins.length <= 1}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                title={admins.length <= 1 ? 'Impossible de supprimer le dernier administrateur' : 'Supprimer cet administrateur'}
+                              >
+                                {deletingId === admin.id ? (
+                                  <Loader2 size={14} className="animate-spin" />
+                                ) : (
+                                  <Trash2 size={14} />
+                                )}
+                                Supprimer
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -560,6 +472,125 @@ export default function AdminSettingsPage() {
 
         </div>
       </div>
+
+      {/* 2FA Password Reset Modal for Table Actions */}
+      {selectedAdminForReset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+          <div className="bg-slate-900 border border-amber-500/30 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
+            <button
+              onClick={() => setSelectedAdminForReset(null)}
+              className="absolute right-5 top-5 text-slate-400 hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <KeyRound size={20} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Changer le Mot de Passe</h3>
+                <p className="text-xs text-slate-400">Compte : <span className="text-amber-400 font-semibold">{selectedAdminForReset.email}</span></p>
+              </div>
+            </div>
+
+            <form onSubmit={handleConfirmPasswordResetModal} className="space-y-4">
+              {/* Countdown badge */}
+              <div className="flex justify-center">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+                  passTimeLeft > 0 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'
+                }`}>
+                  {passTimeLeft > 0 ? (
+                    <>
+                      <Timer size={13} className="animate-spin" />
+                      Code PIN valide : 00:{passTimeLeft < 10 ? `0${passTimeLeft}` : passTimeLeft}
+                    </>
+                  ) : (
+                    <>
+                      <ShieldAlert size={13} />
+                      Code PIN expiré (1 min)
+                    </>
+                  )}
+                </span>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-2 text-center">
+                  Code PIN de Sécurité envoyé à {passMaskedEmail}
+                </label>
+                <div className="flex justify-center gap-1.5">
+                  {passPin.map((char, idx) => (
+                    <input
+                      key={idx}
+                      id={`modal-pass-pin-${idx}`}
+                      type="text"
+                      maxLength={1}
+                      value={char}
+                      onChange={(e) => handlePassPinChange(idx, e.target.value)}
+                      className="w-10 h-12 text-center font-bold text-lg rounded-xl border border-white/20 bg-black/60 text-amber-400 outline-none uppercase focus:border-amber-400"
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-2">
+                  Nouveau Mot de Passe
+                </label>
+                <div className="relative">
+                  <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full rounded-xl border border-white/10 bg-black/40 py-2.5 pl-11 pr-4 text-white text-sm outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-2">
+                  Confirmer le Mot de Passe
+                </label>
+                <div className="relative">
+                  <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full rounded-xl border border-white/10 bg-black/40 py-2.5 pl-11 pr-4 text-white text-sm outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 space-y-2">
+                <button
+                  type="submit"
+                  disabled={passLoading || passTimeLeft <= 0 || passPin.join('').length !== 6}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 py-3 px-4 text-slate-950 font-bold text-sm transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {passLoading ? <Loader2 size={18} className="animate-spin" /> : 'Changer le Mot de Passe'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResendModalPin}
+                  disabled={passLoading}
+                  className="w-full text-xs text-amber-400 hover:underline flex items-center justify-center gap-1 py-1"
+                >
+                  <RefreshCw size={12} className={passLoading ? 'animate-spin' : ''} /> Renvoyer un nouveau code PIN
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AdminShell>
   );
 }
