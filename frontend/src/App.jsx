@@ -17,10 +17,11 @@ import AdminProductsPage from './pages/admin/AdminProductsPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminCustomRequestsPage from './pages/admin/AdminCustomRequestsPage';
 import ScrollToTopButton from './components/ScrollToTopButton.jsx';
+import { ADMIN_PATH } from './config/adminConfig';
 
 export default function App() {
   const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isAdminRoute = location.pathname.startsWith(ADMIN_PATH);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -36,14 +37,19 @@ export default function App() {
           <Route path="/suivi" element={<SuiviPage />} />
           <Route path="/sur-mesure" element={<SurMesurePage />} />
           
-          <Route path="/admin" element={<AdminDashboardPage />} />
-          <Route path="/admin/login" element={<LoginPage />} />
-          <Route path="/admin/customers" element={<AdminCustomersPage />} />
-          <Route path="/admin/orders" element={<AdminOrdersPage />} />
-          <Route path="/admin/products" element={<AdminProductsPage />} />
-          <Route path="/admin/settings" element={<AdminSettingsPage />} />
-          <Route path="/admin/custom-requests" element={<AdminCustomRequestsPage />} />
+          {/* Obfuscated Secret Admin Routes */}
+          <Route path={ADMIN_PATH} element={<AdminDashboardPage />} />
+          <Route path={`${ADMIN_PATH}/login`} element={<LoginPage />} />
+          <Route path={`${ADMIN_PATH}/customers`} element={<AdminCustomersPage />} />
+          <Route path={`${ADMIN_PATH}/orders`} element={<AdminOrdersPage />} />
+          <Route path={`${ADMIN_PATH}/products`} element={<AdminProductsPage />} />
+          <Route path={`${ADMIN_PATH}/settings`} element={<AdminSettingsPage />} />
+          <Route path={`${ADMIN_PATH}/custom-requests`} element={<AdminCustomRequestsPage />} />
           
+          {/* Hide /admin by redirecting to Home Page */}
+          <Route path="/admin/*" element={<Navigate to="/" replace />} />
+          <Route path="/admin" element={<Navigate to="/" replace />} />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
@@ -52,3 +58,4 @@ export default function App() {
     </div>
   );
 }
+

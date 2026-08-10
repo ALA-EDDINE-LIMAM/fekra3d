@@ -405,8 +405,43 @@ const sendContactEmail = async ({ name, email, subject, message }) => {
   }
 };
 
+const sendPinCodeEmail = async (email, pinCode) => {
+  try {
+    const htmlContent = `
+      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 30px; background-color: #07111d; color: #ffffff; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="text-align: center; margin-bottom: 25px;">
+          <h2 style="color: #10b981; font-size: 24px; margin: 0; letter-spacing: 2px;">FEKRA 3D</h2>
+          <p style="color: #94a3b8; font-size: 14px; margin-top: 5px;">Authentification Sécurisée Administrateur</p>
+        </div>
+        <div style="background-color: rgba(255, 255, 255, 0.05); padding: 25px; border-radius: 12px; text-align: center; margin-bottom: 25px; border: 1px solid rgba(255,255,255,0.05);">
+          <p style="color: #cbd5e1; font-size: 14px; margin-top: 0;">Voici votre code PIN à 6 chiffres pour vous connecter à l'espace administration :</p>
+          <div style="font-size: 38px; font-weight: 800; letter-spacing: 10px; color: #10b981; margin: 20px 0; font-family: 'Courier New', Courier, monospace; background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 10px; display: inline-block;">
+            ${pinCode}
+          </div>
+          <p style="color: #64748b; font-size: 12px; margin-bottom: 0;">⏱️ Ce code expire dans <strong>10 minutes</strong>. Ne le partagez avec personne.</p>
+        </div>
+        <p style="color: #64748b; font-size: 11px; text-align: center; margin: 0; line-height: 1.5;">
+          Si vous n'êtes pas à l'origine de cette demande de connexion, veuillez ignorer cet email.
+        </p>
+      </div>
+    `;
+
+    return await sendTransactionalEmail({
+      to: email,
+      subject: `🔒 Code PIN Admin Fekra 3D : ${pinCode}`,
+      html: htmlContent,
+      text: `Votre code PIN d'accès Administrateur Fekra 3D est : ${pinCode}. Ce code expire dans 10 minutes.`,
+    });
+  } catch (error) {
+    console.error('Error sending PIN code email:', error?.message || error);
+    return null;
+  }
+};
+
 module.exports = {
   formatFromAddress,
   sendOrderConfirmationEmail,
-  sendContactEmail
+  sendContactEmail,
+  sendPinCodeEmail
 };
+

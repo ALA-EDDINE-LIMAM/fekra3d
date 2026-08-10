@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Package, LogOut, FileCode, ShoppingBag, Users } from 'lucide-react';
 import { apiBaseUrl } from '../services/api';
+import { ADMIN_PATH } from '../config/adminConfig';
 
 const adminLinks = [
-  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-  { to: '/admin/orders', label: 'Commandes', icon: ShoppingBag },
-  { to: '/admin/customers', label: 'Clients', icon: Users },
-  { to: '/admin/products', label: 'Produits', icon: Package },
-  { to: '/admin/custom-requests', label: 'Commandes Sur-Mesure', icon: FileCode }
+  { to: ADMIN_PATH, label: 'Dashboard', icon: LayoutDashboard, exact: true },
+  { to: `${ADMIN_PATH}/orders`, label: 'Commandes', icon: ShoppingBag },
+  { to: `${ADMIN_PATH}/customers`, label: 'Clients', icon: Users },
+  { to: `${ADMIN_PATH}/products`, label: 'Produits', icon: Package },
+  { to: `${ADMIN_PATH}/custom-requests`, label: 'Commandes Sur-Mesure', icon: FileCode }
 ];
 
 export default function AdminShell({ title, description, children }) {
@@ -20,7 +21,7 @@ export default function AdminShell({ title, description, children }) {
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
     if (!token) {
-      navigate('/admin/login');
+      navigate(`${ADMIN_PATH}/login`);
       return;
     }
 
@@ -33,7 +34,7 @@ export default function AdminShell({ title, description, children }) {
           setAuthorized(true);
         } else {
           localStorage.removeItem('admin_token');
-          navigate('/admin/login');
+          navigate(`${ADMIN_PATH}/login`);
         }
         setLoading(false);
       })
@@ -46,8 +47,9 @@ export default function AdminShell({ title, description, children }) {
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
-    navigate('/admin/login');
+    navigate(`${ADMIN_PATH}/login`);
   };
+
 
   if (loading) {
     return (
