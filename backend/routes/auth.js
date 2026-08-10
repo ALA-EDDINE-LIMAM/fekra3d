@@ -281,6 +281,122 @@ router.delete('/admins/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// Password Reset Routes (Protected by 6-character 1-min Email 2FA PIN)
+router.post('/request-password-reset', async (req, res) => {
+  const { email } = req.body;
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ error: 'Adresse email valide requise.' });
+  }
+
+  const cleanEmail = String(email).trim().toLowerCase();
+
+  const admin = await AdminUser.findOne({ where: { email: cleanEmail } });
+  const envAdminEmail = (process.env.ADMIN_EMAIL || 'ahmed.espironza@gmail.com').trim().toLowerCase();
+
+  if (!admin && cleanEmail !== envAdminEmail) {
+    return res.status(400).json({ error: 'Aucun compte administrateur associé à cet email.' });
+  }
+
+  const adminUsername = admin ? admin.username : (process.env.ADMIN_USERNAME || 'ahmed').trim();
+
+  const pinCode = generateSecurePinCode();
+  const challengeId = crypto.randomBytes(16).toString('hex');
+  const expiresAt = Date.now() + PIN_EXPIRATION_MS; // 1 minute
+
+  pinChallenges.set(challengeId, {
+    username: adminUsername,
+    email: cleanEmail,
+    pin: pinCode,
+    expiresAt,
+    attempts: 0,
+    type: 'PASSWORD_RESET'
+  });
+
+  await sendPinCodeEmail(cleanEmail, pinCode);
+
+  return res.json({
+    challengeId,
+    maskedEmail: maskEmail(cleanEmail),
+    expiresInSeconds: 60,
+    message: `Un code de réinitialisation (1 min) a été envoyé à ${maskEmail(cleanEmail)}.`
+  });
+});
+
+router.post('/change-password-request', authMiddleware, async (req, res) => {
+  const email = req.admin.email || (process.env.ADMIN_EMAIL || 'ahmed.espironza@gmail.com').trim();
+  
+  const pinCode = generateSecurePinCode();
+  const challengeId = crypto.randomBytes(16).toString('hex');
+  const expiresAt = Date.now() + PIN_EXPIRATION_MS; // 1 minute
+
+  pinChallenges.set(challengeId, {
+    username: req.admin.username || 'admin',
+    email,
+    pin: pinCode,
+    expiresAt,
+    attempts: 0,
+    type: 'PASSWORD_RESET'
+  });
+
+  await sendPinCodeEmail(email, pinCode);
+
+  return res.json({
+    challengeId,
+    maskedEmail: maskEmail(email),
+    expiresInSeconds: 60,
+    message: `Code de sécurité envoyé à ${maskEmail(email)}.`
+  });
+});
+
+router.post('/reset-password', async (req, res) => {
+  const { challengeId, pin, newPassword } = req.body;
+  const jwtSecret = (process.env.JWT_SECRET || 'fallback-secret-key').trim();
+
+  if (!challengeId || !pin || !newPassword) {
+    return res.status(400).json({ error: 'Code de sécurité et nouveau mot de passe requis.' });
+  }
+
+  if (String(newPassword).trim().length < 6) {
+    return res.status(400).json({ error: 'Le nouveau mot de passe doit contenir au moins 6 caractères.' });
+  }
+
+  const challenge = pinChallenges.get(challengeId);
+
+  if (!challenge || challenge.type !== 'PASSWORD_RESET') {
+    return res.status(401).json({ error: 'Session de réinitialisation expirée ou invalide. Veuillez recommencer.' });
+  }
+
+  if (Date.now() > challenge.expiresAt) {
+    pinChallenges.delete(challengeId);
+    return res.status(401).json({ error: 'Le code de sécurité a expiré (valide 1 minute). Veuillez redemander un code.' });
+  }
+
+  if (challenge.pin.toUpperCase() !== String(pin).trim().toUpperCase()) {
+    challenge.attempts += 1;
+    return res.status(401).json({ error: 'Code de sécurité incorrect. Veuillez réessayer.' });
+  }
+
+  // 2FA Verified! Update password in database
+  const cleanPassword = String(newPassword).trim();
+  const admin = await AdminUser.findOne({ where: { email: challenge.email } });
+  
+  if (admin) {
+    admin.password = cleanPassword;
+    await admin.save();
+  }
+
+  pinChallenges.delete(challengeId);
+  const token = jwt.sign({ username: challenge.username, email: challenge.email }, jwtSecret, { expiresIn: '24h' });
+
+  return res.json({
+    success: true,
+    message: 'Mot de passe modifié avec succès !',
+    token,
+    username: challenge.username
+  });
+});
+
 module.exports = router;
+
 
 
