@@ -2,12 +2,15 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { Sequelize } = require('sequelize');
+const { AdminUser } = require('../models');
 const { sendPinCodeEmail } = require('../utils/email');
+const authMiddleware = require('../utils/auth');
 
 // In-memory store for pending PIN authentication challenges (challengeId -> challenge data)
 const pinChallenges = new Map();
 
-// Helper to mask email address for privacy (e.g., fekra3d.printing@gmail.com -> f***d.printing@gmail.com)
+// Helper to mask email address for privacy (e.g., ahmed.espironza@gmail.com -> a***a@gmail.com)
 const maskEmail = (email) => {
   if (!email || !email.includes('@')) return 'admin@***.com';
   const [local, domain] = email.split('@');
@@ -27,32 +30,60 @@ setInterval(() => {
 
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  
-  const adminUser = (process.env.ADMIN_USERNAME || 'admin').trim();
-  const adminEmail = (process.env.ADMIN_EMAIL || 'fekra3d.printing@gmail.com').trim();
-  const adminPass = (process.env.ADMIN_PASSWORD || 'fekra3d2026').trim();
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Identifiant et mot de passe requis.' });
+  }
 
-  const isUsernameMatch = username === adminUser || username?.toLowerCase() === adminEmail.toLowerCase();
+  const queryTerm = String(username).trim();
 
-  if (isUsernameMatch && password === adminPass) {
+  // 1. Search in database for matching AdminUser (by username or email)
+  let admin = await AdminUser.findOne({
+    where: {
+      [Sequelize.Op.or]: [
+        { username: queryTerm },
+        { email: queryTerm.toLowerCase() }
+      ]
+    }
+  });
+
+  // 2. Fallback check for env credentials if database records do not match
+  const envAdminUser = (process.env.ADMIN_USERNAME || 'ahmed').trim();
+  const envAdminEmail = (process.env.ADMIN_EMAIL || 'ahmed.espironza@gmail.com').trim();
+  const envAdminPass = (process.env.ADMIN_PASSWORD || 'fekra3d2026').trim();
+
+  let adminUsername = '';
+  let adminEmail = '';
+  let isValidPassword = false;
+
+  if (admin) {
+    adminUsername = admin.username;
+    adminEmail = admin.email;
+    isValidPassword = String(password) === String(admin.password);
+  } else if (queryTerm === envAdminUser || queryTerm.toLowerCase() === envAdminEmail.toLowerCase()) {
+    adminUsername = envAdminUser;
+    adminEmail = envAdminEmail;
+    isValidPassword = String(password) === String(envAdminPass);
+  }
+
+  if (isValidPassword && adminEmail) {
     // Generate cryptographically secure 6-digit PIN
     const pinCode = Math.floor(100000 + Math.random() * 900000).toString();
     const challengeId = crypto.randomBytes(16).toString('hex');
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes validity
 
     pinChallenges.set(challengeId, {
-      username: adminUser,
+      username: adminUsername,
       email: adminEmail,
       pin: pinCode,
       expiresAt,
       attempts: 0
     });
 
-    // Send PIN code via email
+    // Send PIN code via email to this specific admin's email
     const emailResult = await sendPinCodeEmail(adminEmail, pinCode);
 
     if (emailResult === null) {
-      console.warn(`[WARN] PIN Email sending failed or fell back. Demo PIN code for setup testing: ${pinCode}`);
+      console.warn(`[WARN] PIN Email sending failed. Demo PIN code for setup testing: ${pinCode}`);
     }
 
     return res.json({
@@ -97,12 +128,13 @@ router.post('/verify-pin', async (req, res) => {
 
   // PIN verified successfully! Issue signed JWT token
   pinChallenges.delete(challengeId);
-  const token = jwt.sign({ username: challenge.username }, jwtSecret, { expiresIn: '24h' });
+  const token = jwt.sign({ username: challenge.username, email: challenge.email }, jwtSecret, { expiresIn: '24h' });
 
   return res.json({
     success: true,
     token,
-    username: challenge.username
+    username: challenge.username,
+    email: challenge.email
   });
 });
 
@@ -146,5 +178,93 @@ router.get('/verify', (req, res) => {
   }
 });
 
+// Admin Account Management Routes (Protected by JWT)
+router.get('/admins', authMiddleware, async (req, res) => {
+  try {
+    const admins = await AdminUser.findAll({
+      attributes: ['id', 'username', 'email', 'role', 'createdAt'],
+      order: [['createdAt', 'ASC']]
+    });
+    res.json(admins);
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur lors de la récupération des administrateurs.' });
+  }
+});
+
+router.post('/admins', authMiddleware, async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: 'Nom d\'utilisateur, email et mot de passe sont requis.' });
+    }
+
+    const cleanUsername = String(username).trim();
+    const cleanEmail = String(email).trim().toLowerCase();
+
+    if (!cleanEmail.includes('@')) {
+      return res.status(400).json({ error: 'Adresse email invalide.' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caractères.' });
+    }
+
+    const existingUser = await AdminUser.findOne({
+      where: {
+        [Sequelize.Op.or]: [
+          { username: cleanUsername },
+          { email: cleanEmail }
+        ]
+      }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'Un administrateur avec ce nom d\'utilisateur ou cet email existe déjà.' });
+    }
+
+    const newAdmin = await AdminUser.create({
+      username: cleanUsername,
+      email: cleanEmail,
+      password: String(password).trim(),
+      role: 'admin'
+    });
+
+    res.status(201).json({
+      message: `Administrateur ${cleanEmail} créé avec succès.`,
+      admin: {
+        id: newAdmin.id,
+        username: newAdmin.username,
+        email: newAdmin.email,
+        role: newAdmin.role,
+        createdAt: newAdmin.createdAt
+      }
+    });
+  } catch (err) {
+    console.error('Error creating admin:', err);
+    res.status(500).json({ error: 'Erreur lors de la création de l\'administrateur.' });
+  }
+});
+
+router.delete('/admins/:id', authMiddleware, async (req, res) => {
+  try {
+    const count = await AdminUser.count();
+    if (count <= 1) {
+      return res.status(400).json({ error: 'Impossible de supprimer le dernier compte administrateur.' });
+    }
+
+    const admin = await AdminUser.findByPk(req.params.id);
+    if (!admin) {
+      return res.status(404).json({ error: 'Administrateur introuvable.' });
+    }
+
+    await admin.destroy();
+    res.json({ message: 'Administrateur supprimé avec succès.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur lors de la suppression de l\'administrateur.' });
+  }
+});
+
 module.exports = router;
+
 

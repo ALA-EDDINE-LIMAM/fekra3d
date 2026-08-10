@@ -64,6 +64,14 @@ const CustomRequest = sequelize.define('CustomRequest', {
   status: { type: DataTypes.ENUM('pending', 'reviewed', 'contacted', 'completed'), defaultValue: 'pending' }
 });
 
+const AdminUser = sequelize.define('AdminUser', {
+  id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  username: { type: DataTypes.STRING, allowNull: false, unique: true },
+  email: { type: DataTypes.STRING, allowNull: false, unique: true },
+  password: { type: DataTypes.STRING, allowNull: false },
+  role: { type: DataTypes.STRING, defaultValue: 'admin' }
+});
+
 // Define Relationships
 Category.hasMany(Product, { foreignKey: 'category_id' });
 Product.belongsTo(Category, { foreignKey: 'category_id' });
@@ -96,5 +104,7 @@ module.exports = {
   ProductVariant,
   Order,
   OrderItem,
-  CustomRequest
+  CustomRequest,
+  AdminUser
 };
+

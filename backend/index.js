@@ -168,7 +168,7 @@ sequelize.sync()
     await ensureOrderItemCustomizationColumn();
     
     // Seed categories
-    const { Category } = require('./models');
+    const { Category, AdminUser } = require('./models');
     const categories = [
       { id: '11111111-1111-1111-1111-111111111111', name: 'Porte clé' },
       { id: '22222222-2222-2222-2222-222222222222', name: 'Accessoire' },
@@ -180,9 +180,34 @@ sequelize.sync()
       await Category.findOrCreate({ where: { id: cat.id }, defaults: cat });
     }
 
+    // Seed primary superadmin account
+    const primaryAdminEmail = (process.env.ADMIN_EMAIL || 'ahmed.espironza@gmail.com').trim();
+    const primaryAdminUsername = (process.env.ADMIN_USERNAME || 'ahmed').trim();
+    const primaryAdminPassword = (process.env.ADMIN_PASSWORD || 'fekra3d2026').trim();
+
+    const existingAdmin = await AdminUser.findOne({
+      where: {
+        [Sequelize.Op.or]: [
+          { email: primaryAdminEmail },
+          { username: primaryAdminUsername }
+        ]
+      }
+    });
+
+    if (!existingAdmin) {
+      await AdminUser.create({
+        username: primaryAdminUsername,
+        email: primaryAdminEmail,
+        password: primaryAdminPassword,
+        role: 'superadmin'
+      });
+      console.log(`[SEED] Initial Admin account created: ${primaryAdminEmail} (${primaryAdminUsername})`);
+    }
+
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
+
   })
   .catch((error) => {
     console.error('Error syncing database:', error);

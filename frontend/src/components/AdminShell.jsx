@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, LogOut, FileCode, ShoppingBag, Users } from 'lucide-react';
+import { LayoutDashboard, Package, LogOut, FileCode, ShoppingBag, Users, ShieldCheck } from 'lucide-react';
 import { apiBaseUrl } from '../services/api';
 import { ADMIN_PATH } from '../config/adminConfig';
 
@@ -9,8 +9,10 @@ const adminLinks = [
   { to: `${ADMIN_PATH}/orders`, label: 'Commandes', icon: ShoppingBag },
   { to: `${ADMIN_PATH}/customers`, label: 'Clients', icon: Users },
   { to: `${ADMIN_PATH}/products`, label: 'Produits', icon: Package },
-  { to: `${ADMIN_PATH}/custom-requests`, label: 'Commandes Sur-Mesure', icon: FileCode }
+  { to: `${ADMIN_PATH}/custom-requests`, label: 'Commandes Sur-Mesure', icon: FileCode },
+  { to: `${ADMIN_PATH}/settings`, label: 'Gestion Admins', icon: ShieldCheck }
 ];
+
 
 export default function AdminShell({ title, description, children }) {
   const location = useLocation();
