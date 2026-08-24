@@ -62,11 +62,13 @@ export default function CataloguePage() {
               <img 
                 src={product.image} 
                 alt="" 
+                onError={(e) => { e.target.onerror = null; e.target.src = '/logo.jpg'; }}
                 className="absolute inset-0 h-full w-full object-cover blur-sm opacity-40 scale-110 pointer-events-none select-none transition-transform duration-500 group-hover:scale-115" 
               />
               <img 
                 src={product.image} 
                 alt={product.name} 
+                onError={(e) => { e.target.onerror = null; e.target.src = '/logo.jpg'; }}
                 className="relative z-10 h-full w-full object-contain transition-transform duration-500 group-hover:scale-105" 
               />
             </Link>
