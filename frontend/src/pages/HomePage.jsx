@@ -172,7 +172,7 @@ export default function HomePage() {
                 : 0;
                 
               return (
-              <div key={product.id} className="group flex flex-col overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c1420] shadow-sm hover:shadow-lg transition-shadow relative z-10 hover:z-20">
+              <div key={product.id} className="group flex flex-col overflow-hidden rounded-xl border border-transparent bg-transparent transition-all duration-300 hover:border-slate-200 dark:hover:border-white/10 hover:bg-white dark:hover:bg-[#0c1420] hover:shadow-lg relative z-10 hover:z-20">
                 <Link to={`/produit/${product.id}`} className="block relative w-full aspect-[4/3] bg-slate-950 overflow-hidden flex items-center justify-center">
                   {discount > 0 && (
                     <div className="absolute top-2 left-2 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-yellow-400 text-[11px] font-bold text-slate-900 shadow-md">
@@ -193,7 +193,7 @@ export default function HomePage() {
                   />
                 </Link>
                 
-                <div className="flex flex-col flex-1 p-3 bg-white dark:bg-[#0c1420] z-10">
+                <div className="flex flex-col flex-1 p-3 bg-transparent z-10">
                   <Link to={`/produit/${product.id}`} className="block mb-2 text-left">
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white transition-colors group-hover:text-[#47d7c6] line-clamp-2" title={product.name}>
                       {product.name}
