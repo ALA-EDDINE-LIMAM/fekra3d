@@ -4,6 +4,7 @@ require('dotenv').config();
 const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
+const sharp = require('sharp');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { Sequelize } = require('sequelize');
@@ -95,8 +96,11 @@ app.use('/api/', limiter);
 
 app.use(express.json());
 
-// Serve static files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Uploaded filenames are unique, so browsers and CDNs can cache them safely.
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  maxAge: '7d',
+  immutable: true,
+}));
 
 // Routes
 app.use('/api/products', productRoutes);
@@ -106,7 +110,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/custom-requests', customRequestRoutes);
 
 // Secure File upload endpoint with MIME type and size checks
-app.post('/api/upload', upload.single('file'), (req, res) => {
+app.post('/api/upload', upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Aucun fichier uploadé.' });
   }
@@ -124,8 +128,37 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     return res.status(400).json({ error: 'Les fichiers 3D ne doivent pas dépasser 50 Mo.' });
   }
   
+  let filename = req.file.filename;
+
+  if (isImage) {
+    try {
+      const compressedFilename = filename.replace(/\.[^/.]+$/, "") + ".webp";
+      const compressedPath = path.join(req.file.destination, compressedFilename);
+      
+      // Read into buffer to avoid Windows file lock by sharp
+      const fileBuffer = fs.readFileSync(req.file.path);
+      
+      await sharp(fileBuffer)
+        .resize({ width: 1200, withoutEnlargement: true }) // Prevent too large images
+        .webp({ quality: 80, effort: 4 })
+        .toFile(compressedPath);
+      
+      // Delete original file
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkErr) {
+        console.error('Impossible de supprimer le fichier original:', unlinkErr);
+      }
+      
+      filename = compressedFilename;
+    } catch (err) {
+      console.error("Erreur de compression d'image:", err);
+      // Fallback to original filename if compression fails
+    }
+  }
+
   // Dynamic host URL resolution (deployment ready)
-  const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+  const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
   res.json({ url: fileUrl });
 });
 

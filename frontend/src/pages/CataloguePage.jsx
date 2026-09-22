@@ -1,6 +1,7 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ShoppingCart, Eye } from 'lucide-react';
 import PageShell from '../components/PageShell';
+import Seo from '../components/Seo';
 import { useProducts, getProductSearchScore } from '../utils/products';
 import { useCart } from '../context/CartContext';
 
@@ -10,6 +11,12 @@ export default function CataloguePage() {
   const [searchParams] = useSearchParams();
   const categoryParam = searchParams.get('category');
   const searchParam = searchParams.get('search');
+  const cataloguePath = categoryParam
+    ? `/catalogue?category=${encodeURIComponent(categoryParam)}`
+    : '/catalogue';
+  const catalogueTitle = categoryParam
+    ? `${categoryParam} en impression 3D | Fekra3D`
+    : 'Catalogue d\'impression 3D | Fekra3D';
 
   const products = allProducts
     .map((product) => ({
@@ -45,6 +52,12 @@ export default function CataloguePage() {
       title="Parcourir la bibliothèque de produits"
       description="Sélectionnez un modèle prêt à l'emploi ou passez à une demande sur mesure."
     >
+      <Seo
+        title={catalogueTitle}
+        description="Explorez le catalogue Fekra3D : porte-clés, objets de décoration, figurines et accessoires fabriqués en impression 3D en Tunisie."
+        path={cataloguePath}
+        noindex={Boolean(searchParam)}
+      />
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {products.map((product) => {
           const discount = product.originalPrice && product.originalPrice > product.price 
@@ -62,12 +75,17 @@ export default function CataloguePage() {
               <img 
                 src={product.image} 
                 alt="" 
+                aria-hidden="true"
+                loading="lazy"
+                decoding="async"
                 onError={(e) => { e.target.onerror = null; e.target.src = '/logo.jpg'; }}
                 className="absolute inset-0 h-full w-full object-cover blur-sm opacity-40 scale-110 pointer-events-none select-none transition-transform duration-500 group-hover:scale-115" 
               />
               <img 
                 src={product.image} 
                 alt={product.name} 
+                loading="lazy"
+                decoding="async"
                 onError={(e) => { e.target.onerror = null; e.target.src = '/logo.jpg'; }}
                 className="relative z-10 h-full w-full object-contain transition-transform duration-500 group-hover:scale-105" 
               />

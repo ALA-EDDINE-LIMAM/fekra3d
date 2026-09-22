@@ -3,6 +3,7 @@ import { ArrowRight, ChevronRight, Sparkles, ShoppingCart, Eye, Paperclip } from
 import { Link, useNavigate } from 'react-router-dom';
 import { useProducts } from '../utils/products';
 import { useCart } from '../context/CartContext';
+import Seo, { SITE_URL } from '../components/Seo';
 
 export default function HomePage() {
   const products = useProducts();
@@ -44,6 +45,20 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col">
+      <Seo
+        title="Fekra3D | Impression 3D en Tunisie"
+        description="Fekra3D, boutique d'impression 3D en Tunisie : porte-clés, décoration, figurines, accessoires et créations personnalisées."
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'Organization',
+          name: 'Fekra3D',
+          url: `${SITE_URL}/`,
+          logo: `${SITE_URL}/logo.jpg`,
+          email: 'fekra3d.printing@gmail.com',
+          telephone: '+21655084823',
+          description: "Boutique tunisienne spécialisée dans l'impression 3D.",
+        }}
+      />
       <section className="relative w-full overflow-hidden py-10 lg:py-12 border-b border-slate-200 dark:border-white/10">
         {/* Original Background Restore */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_60%_20%,rgba(71,215,198,0.04),transparent_30%),radial-gradient(circle_at_15%_25%,rgba(111,168,255,0.04),transparent_26%)]" />
@@ -104,12 +119,17 @@ export default function HomePage() {
                         key={`bg-${activeProduct.id}`}
                         src={activeProduct.image}
                         alt=""
+                        aria-hidden="true"
+                        loading="lazy"
+                        decoding="async"
                         className="absolute inset-0 h-full w-full object-cover blur-sm opacity-40 scale-110 pointer-events-none select-none transition-opacity duration-700 ease-in-out"
                       />
                       <img 
                         key={activeProduct.id}
                         src={activeProduct.image}
                         alt={activeProduct.name}
+                        fetchPriority="high"
+                        decoding="async"
                         className="relative z-10 h-full w-full object-contain transition-opacity duration-700 ease-in-out"
                       />
                     </div>
@@ -182,12 +202,17 @@ export default function HomePage() {
                   <img 
                     src={product.image} 
                     alt="" 
+                    aria-hidden="true"
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => { e.target.onerror = null; e.target.src = '/logo.jpg'; }}
                     className="absolute inset-0 h-full w-full object-cover blur-sm opacity-40 scale-110 pointer-events-none select-none transition-transform duration-500 group-hover:scale-115" 
                   />
                   <img 
                     src={product.image} 
                     alt={product.name} 
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => { e.target.onerror = null; e.target.src = '/logo.jpg'; }}
                     className="relative z-10 h-full w-full object-contain transition-transform duration-500 group-hover:scale-105" 
                   />
