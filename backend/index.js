@@ -58,17 +58,32 @@ const customRequestRoutes = require('./routes/customRequests');
 const app = express();
 app.set('trust proxy', 1);
 
-// Restrict CORS origins
+// Restrict CORS origins while accepting both domain variants.
+const normalizeOrigin = (value) => value?.trim().replace(/\/+$/, '');
+const configuredFrontendOrigin = normalizeOrigin(process.env.FRONTEND_URL);
 const allowedOrigins = [
-  process.env.FRONTEND_URL,
+  configuredFrontendOrigin,
   'http://localhost:5173',
-  'http://localhost:3000'
+  'http://localhost:3000',
 ].filter(Boolean);
+
+if (configuredFrontendOrigin) {
+  try {
+    const frontendUrl = new URL(configuredFrontendOrigin);
+    const hostnameWithoutWww = frontendUrl.hostname.replace(/^www\./, '');
+    allowedOrigins.push(
+      `${frontendUrl.protocol}//${hostnameWithoutWww}`,
+      `${frontendUrl.protocol}//www.${hostnameWithoutWww}`,
+    );
+  } catch {
+    console.warn('FRONTEND_URL est invalide :', process.env.FRONTEND_URL);
+  }
+}
 
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+    if (allowedOrigins.includes(normalizeOrigin(origin)) || process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     } else {
       return callback(new Error('Accès bloqué par la politique CORS.'));
@@ -179,6 +194,10 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to Fekra 3D API' });
 });
 
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 const PORT = process.env.PORT || 5000;
 
 const ensureOrderItemCustomizationColumn = async () => {
@@ -194,54 +213,49 @@ const ensureOrderItemCustomizationColumn = async () => {
   }
 };
 
-// Database sync and server start
-sequelize.sync()
-  .then(async () => {
-    console.log('Database synced successfully');
-    await ensureOrderItemCustomizationColumn();
-    
-    // Seed categories
-    const { Category, AdminUser } = require('./models');
-    const categories = [
-      { id: '11111111-1111-1111-1111-111111111111', name: 'Porte clé' },
-      { id: '22222222-2222-2222-2222-222222222222', name: 'Accessoire' },
-      { id: '33333333-3333-3333-3333-333333333333', name: 'Pièces de rechange mécanique' },
-      { id: '44444444-4444-4444-4444-444444444444', name: 'Figurines & Articulés' },
-      { id: '55555555-5555-5555-5555-555555555555', name: 'Décoration & Maison' },
-    ];
-    for (const cat of categories) {
-      await Category.findOrCreate({ where: { id: cat.id }, defaults: cat });
+const initializeDatabase = async () => {
+  await sequelize.sync();
+  console.log('Database synced successfully');
+  await ensureOrderItemCustomizationColumn();
+
+  const { Category, AdminUser } = require('./models');
+  const categories = [
+    { id: '11111111-1111-1111-1111-111111111111', name: 'Porte clé' },
+    { id: '22222222-2222-2222-2222-222222222222', name: 'Accessoire' },
+    { id: '33333333-3333-3333-3333-333333333333', name: 'Pièces de rechange mécanique' },
+    { id: '44444444-4444-4444-4444-444444444444', name: 'Figurines & Articulés' },
+    { id: '55555555-5555-5555-5555-555555555555', name: 'Décoration & Maison' },
+  ];
+  for (const cat of categories) {
+    await Category.findOrCreate({ where: { id: cat.id }, defaults: cat });
+  }
+
+  const primaryAdminEmail = (process.env.ADMIN_EMAIL || 'ahmed.espironza@gmail.com').trim();
+  const primaryAdminUsername = (process.env.ADMIN_USERNAME || 'ahmed').trim();
+  const primaryAdminPassword = (process.env.ADMIN_PASSWORD || 'fekra3d2026').trim();
+  const existingAdmin = await AdminUser.findOne({
+    where: {
+      [Sequelize.Op.or]: [
+        { email: primaryAdminEmail },
+        { username: primaryAdminUsername }
+      ]
     }
-
-    // Seed primary superadmin account
-    const primaryAdminEmail = (process.env.ADMIN_EMAIL || 'ahmed.espironza@gmail.com').trim();
-    const primaryAdminUsername = (process.env.ADMIN_USERNAME || 'ahmed').trim();
-    const primaryAdminPassword = (process.env.ADMIN_PASSWORD || 'fekra3d2026').trim();
-
-    const existingAdmin = await AdminUser.findOne({
-      where: {
-        [Sequelize.Op.or]: [
-          { email: primaryAdminEmail },
-          { username: primaryAdminUsername }
-        ]
-      }
-    });
-
-    if (!existingAdmin) {
-      await AdminUser.create({
-        username: primaryAdminUsername,
-        email: primaryAdminEmail,
-        password: primaryAdminPassword,
-        role: 'superadmin'
-      });
-      console.log(`[SEED] Initial Admin account created: ${primaryAdminEmail} (${primaryAdminUsername})`);
-    }
-
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
-
-  })
-  .catch((error) => {
-    console.error('Error syncing database:', error);
   });
+
+  if (!existingAdmin) {
+    await AdminUser.create({
+      username: primaryAdminUsername,
+      email: primaryAdminEmail,
+      password: primaryAdminPassword,
+      role: 'superadmin'
+    });
+    console.log(`[SEED] Initial Admin account created: ${primaryAdminEmail} (${primaryAdminUsername})`);
+  }
+};
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+  initializeDatabase().catch((error) => {
+    console.error('Database initialization failed:', error.message);
+  });
+});
