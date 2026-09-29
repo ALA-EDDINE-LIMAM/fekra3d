@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, LogOut, FileCode, ShoppingBag, Users, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Package, LogOut, FileCode, ShoppingBag, Users, ShieldCheck, Menu, X } from 'lucide-react';
 import { apiBaseUrl } from '../services/api';
 import { ADMIN_PATH } from '../config/adminConfig';
 
@@ -19,6 +19,7 @@ export default function AdminShell({ title, description, children }) {
   const navigate = useNavigate();
   const [authorized, setAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
@@ -64,57 +65,94 @@ export default function AdminShell({ title, description, children }) {
 
   if (!authorized) return null;
 
+  const renderNavigation = () => (
+    <>
+      <nav className="flex-1 px-4 py-6 space-y-2">
+        {adminLinks.map((link) => {
+          const isActive = link.exact
+            ? location.pathname === link.to
+            : location.pathname.startsWith(link.to);
+
+          const Icon = link.icon;
+
+          return (
+            <Link
+              key={link.to}
+              to={link.to}
+              onClick={() => setIsSidebarOpen(false)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
+                isActive
+                  ? 'bg-emerald-500/20 text-emerald-400 font-medium'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+              }`}
+            >
+              <Icon size={20} className={isActive ? 'text-emerald-400' : 'text-slate-400'} />
+              {link.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="p-4 border-t border-white/10">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-slate-200 transition-all duration-300 cursor-pointer"
+        >
+          <LogOut size={20} />
+          Se déconnecter
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#07111d]">
       {/* Sidebar */}
-      <aside className="w-64 h-full flex-shrink-0 border-r border-white/10 bg-[#1e293b]/50 backdrop-blur-xl flex flex-col">
+      <aside className="hidden md:flex w-64 h-full flex-shrink-0 border-r border-white/10 bg-[#1e293b]/50 backdrop-blur-xl flex-col">
         <div className="h-20 flex items-center px-8 border-b border-white/10">
           <span className="text-xl font-bold text-white tracking-widest uppercase">Admin</span>
         </div>
-        
-        <nav className="flex-1 px-4 py-6 space-y-2">
-          {adminLinks.map((link) => {
-            const isActive = link.exact 
-              ? location.pathname === link.to 
-              : location.pathname.startsWith(link.to);
-              
-            const Icon = link.icon;
-            
-            return (
-              <Link
-                key={link.to}
-                to={link.to}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
-                  isActive 
-                    ? 'bg-emerald-500/20 text-emerald-400 font-medium' 
-                    : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
-                }`}
-              >
-                <Icon size={20} className={isActive ? 'text-emerald-400' : 'text-slate-400'} />
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
-        
-        <div className="p-4 border-t border-white/10">
-          <button 
-            onClick={handleLogout} 
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-slate-200 transition-all duration-300 cursor-pointer"
-          >
-            <LogOut size={20} />
-            Se déconnecter
-          </button>
-        </div>
+        {renderNavigation()}
       </aside>
+
+      {isSidebarOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+          <aside className="relative flex h-full w-80 max-w-full flex-col border-r border-white/10 bg-[#0c1420] shadow-2xl animate-in slide-in-from-left duration-300">
+            <div className="flex h-20 items-center justify-between border-b border-white/10 px-6">
+              <span className="text-xl font-bold uppercase tracking-widest text-white">Admin</span>
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+                aria-label="Fermer le menu admin"
+              >
+                <X size={22} />
+              </button>
+            </div>
+            {renderNavigation()}
+          </aside>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Top Header Area for Title */}
-        <header className="h-20 flex items-center justify-between px-8 border-b border-white/10 bg-[#1e293b]/30 backdrop-blur-md">
-          <div>
-            <h1 className="text-2xl font-bold text-white">{title}</h1>
-            {description && <p className="text-sm text-slate-400 mt-1">{description}</p>}
+        <header className="h-20 flex items-center justify-between gap-4 px-8 border-b border-white/10 bg-[#1e293b]/30 backdrop-blur-md">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="shrink-0 rounded-lg p-2 text-slate-300 transition-colors hover:bg-white/5 hover:text-white md:hidden"
+              aria-label="Ouvrir le menu admin"
+            >
+              <Menu size={24} />
+            </button>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-white">{title}</h1>
+              {description && <p className="text-sm text-slate-400 mt-1">{description}</p>}
+            </div>
           </div>
           <div className="flex items-center gap-4">
              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
