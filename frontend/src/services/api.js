@@ -17,22 +17,23 @@ export const resolveMediaUrl = (value) => {
     return trimmedValue;
   }
 
-  if (trimmedValue.startsWith('/uploads/')) {
-      if (/^(https?:)?\/\//i.test(trimmedValue)) {
-        try {
-          const mediaUrl = new URL(trimmedValue, window.location.origin);
-          const isLocalApiUrl = ['localhost', '127.0.0.1', '0.0.0.0'].includes(mediaUrl.hostname);
+  if (/^(https?:)?\/\//i.test(trimmedValue)) {
+    try {
+      const mediaUrl = new URL(trimmedValue, window.location.origin);
+      const isLocalApiUrl = ['localhost', '127.0.0.1', '0.0.0.0'].includes(mediaUrl.hostname);
 
-          if (isLocalApiUrl && mediaUrl.pathname.startsWith('/uploads/')) {
-            return `${apiBaseUrl}${mediaUrl.pathname}${mediaUrl.search}`;
-          }
-        } catch {
-          return trimmedValue;
-        }
-
-        return trimmedValue;
+      if (isLocalApiUrl && mediaUrl.pathname.startsWith('/uploads/')) {
+        return `${apiBaseUrl}${mediaUrl.pathname}${mediaUrl.search || '?width=640'}`;
       }
-    return `${apiBaseUrl}${trimmedValue}`;
+    } catch {
+      return trimmedValue;
+    }
+
+    return trimmedValue;
+  }
+
+  if (trimmedValue.startsWith('/uploads/')) {
+    return `${apiBaseUrl}${trimmedValue}${trimmedValue.includes('?') ? '&' : '?'}width=640`;
   }
 
   return trimmedValue;

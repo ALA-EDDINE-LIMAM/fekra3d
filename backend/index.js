@@ -111,6 +111,39 @@ app.use('/api/', limiter);
 
 app.use(express.json());
 
+app.get('/uploads/:filename', async (req, res, next) => {
+  const requestedWidth = Number.parseInt(req.query.width, 10);
+  const width = [320, 480, 640, 960, 1200].includes(requestedWidth) ? requestedWidth : null;
+
+  if (!width) {
+    return next();
+  }
+
+  const filename = path.basename(req.params.filename);
+  const sourcePath = path.join(uploadsDir, filename);
+  const cachedFilename = `${path.parse(filename).name}-w${width}.webp`;
+  const cachedPath = path.join(uploadsDir, cachedFilename);
+
+  if (!fs.existsSync(sourcePath)) {
+    return next();
+  }
+
+  try {
+    if (!fs.existsSync(cachedPath)) {
+      await sharp(sourcePath)
+        .resize({ width, withoutEnlargement: true })
+        .webp({ quality: 78, effort: 4 })
+        .toFile(cachedPath);
+    }
+
+    res.type('image/webp');
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    return res.sendFile(cachedPath);
+  } catch (error) {
+    return next(error);
+  }
+});
+
 // Uploaded filenames are unique, so browsers and CDNs can cache them safely.
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   maxAge: '7d',

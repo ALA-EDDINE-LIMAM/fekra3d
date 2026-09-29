@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://fekra3d.tn/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://fekra3d.tn/catalogue</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url><loc>https://fekra3d.tn/catalogue?category=Figurines</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://fekra3d.tn/catalogue?category=D%C3%A9coration</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://fekra3d.tn/catalogue?category=%C3%89clairage</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://fekra3d.tn/catalogue?category=Accessoires%20Bureau</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://fekra3d.tn/produit/dragon-articule</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://fekra3d.tn/produit/vase-low-poly</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://fekra3d.tn/produit/lampe-lune</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://fekra3d.tn/produit/support-casque-crane</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://fekra3d.tn/produit/pot-plante-baby-groot</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://fekra3d.tn/produit/organisateur-bureau-hex</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://fekra3d.tn/produit/lightbox-mario</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://fekra3d.tn/produit/figurine-buste-batman</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url>
+    <loc>https://fekra3d.tn/sur-mesure</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://fekra3d.tn/contact</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>
