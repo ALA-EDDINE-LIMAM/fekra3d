@@ -244,14 +244,17 @@ export default function AdminDashboardPage() {
                                   <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
                                     {customization.colors.map((color, colorIndex) => {
                                       const parsedColor = parseProductColor(color);
+                                      const colorLabel = getColorLabel(color);
                                       return (
-                                        <span
-                                          key={`${parsedColor.value}-${colorIndex}`}
-                                          title={getColorLabel(color)}
-                                          aria-label={`Couleur: ${getColorLabel(color)}`}
-                                          className="inline-block h-4 w-4 rounded-full border border-white/40 shadow-inner"
-                                          style={{ backgroundColor: parsedColor.value }}
-                                        />
+                                        <span key={`${parsedColor.value}-${colorIndex}`} className="inline-flex items-center gap-1">
+                                          <span
+                                            title={colorLabel}
+                                            aria-label={`Couleur: ${colorLabel}`}
+                                            className="inline-block h-4 w-4 rounded-full border border-white/40 shadow-inner"
+                                            style={{ backgroundColor: parsedColor.value }}
+                                          />
+                                          <span>{colorLabel}</span>
+                                        </span>
                                       );
                                     })}
                                     {customization.material ? <span>{`Matériau: ${customization.material}`}</span> : null}
