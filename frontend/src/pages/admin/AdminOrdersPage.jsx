@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import AdminShell from '../../components/AdminShell';
 import { apiBaseUrl } from '../../services/api';
 import { Download, Phone, Mail, Clock, CheckCircle, Package, AlertCircle } from 'lucide-react';
+import { getColorLabel, parseProductColor } from '../../utils/products';
 
 const parseCustomization = (customization) => {
   if (!customization) return { colors: [], material: '' };
@@ -25,7 +26,7 @@ const describeCustomization = (customization) => {
   const labels = [];
 
   if (parsed.colors.length > 0) {
-    labels.push(`Couleur${parsed.colors.length > 1 ? 's' : ''}: ${parsed.colors.join(', ')}`);
+    labels.push(`Couleur${parsed.colors.length > 1 ? 's' : ''}: ${parsed.colors.map(getColorLabel).join(', ')}`);
   }
 
   if (parsed.material) {
@@ -231,12 +232,26 @@ export default function AdminOrdersPage() {
                       {order.items?.some(item => describeCustomization(item.customization).length > 0) ? (
                         <div className="mt-2 space-y-1 text-xs text-slate-400">
                           {order.items.map((item) => {
-                            const labels = describeCustomization(item.customization);
+                            const customization = parseCustomization(item.customization);
+                            const labels = describeCustomization(customization);
                             if (!labels.length) return null;
 
                             return (
-                              <div key={item.id}>
-                                {item.product_name}: {labels.join(' · ')}
+                              <div key={item.id} className="flex items-center gap-2">
+                                <span>{item.product_name}:</span>
+                                {customization.colors.map((color, colorIndex) => {
+                                  const parsedColor = parseProductColor(color);
+                                  return (
+                                    <span
+                                      key={`${parsedColor.value}-${colorIndex}`}
+                                      title={getColorLabel(color)}
+                                      aria-label={`Couleur: ${getColorLabel(color)}`}
+                                      className="inline-block h-4 w-4 rounded-full border border-white/40 shadow-inner"
+                                      style={{ backgroundColor: parsedColor.value }}
+                                    />
+                                  );
+                                })}
+                                {customization.material ? <span>Matériau: {customization.material}</span> : null}
                               </div>
                             );
                           })}

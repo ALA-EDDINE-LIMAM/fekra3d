@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import PageShell from '../components/PageShell';
 import Seo, { SITE_URL } from '../components/Seo';
 import { useCart } from '../context/CartContext';
-import { useProductById } from '../utils/products';
+import { parseProductColor, useProductById } from '../utils/products';
 import { resolveMediaUrl } from '../services/api';
 import '@google/model-viewer';
 import { Box, Image as ImageIcon, Ruler, Scale, Layers, Star } from 'lucide-react';
@@ -270,11 +270,13 @@ export default function ProductPage() {
   const product = useProductById(id);
 
   const customizablePartsCount = product?.customizableParts || 1;
-  const availableColors = Array.isArray(product?.colors) ? product.colors.filter(Boolean) : [];
+  const availableColors = Array.isArray(product?.colors)
+    ? product.colors.filter(Boolean).map(parseProductColor).filter((color) => color.name)
+    : [];
   const availableMaterials = Array.isArray(product?.materials) ? product.materials.filter(Boolean) : [];
   const [selectedColors, setSelectedColors] = useState(() => {
     return availableColors.length > 0
-      ? Array.from({ length: customizablePartsCount }).map(() => availableColors[0])
+      ? Array.from({ length: customizablePartsCount }).map(() => availableColors[0].name)
       : [];
   });
   const [selectedMaterial, setSelectedMaterial] = useState(availableMaterials[0] ?? '');
@@ -291,7 +293,7 @@ export default function ProductPage() {
 
     setSelectedColors(
       availableColors.length > 0
-        ? Array.from({ length: customizablePartsCount }).map(() => availableColors[0])
+        ? Array.from({ length: customizablePartsCount }).map(() => availableColors[0].name)
         : []
     );
     setSelectedMaterial(availableMaterials[0] ?? '');
@@ -351,7 +353,11 @@ export default function ProductPage() {
         }}
       />
       <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <ProductGallery key={product.id} product={product} selectedColors={selectedColors} />
+        <ProductGallery
+          key={product.id}
+          product={product}
+          selectedColors={selectedColors.map((colorName) => availableColors.find((color) => color.name === colorName)?.value || colorName)}
+        />
         <div className="glass-panel flex flex-col gap-6 p-6">
           <div>
             <div className="text-sm uppercase tracking-[0.24em] text-slate-500">{product.category}</div>
@@ -377,22 +383,21 @@ export default function ProductPage() {
                     </h3>
                     <div className="mt-3 flex flex-wrap gap-3">
                       {availableColors.map((color) => {
-                        const isHex = color.startsWith('#');
-                        const isSelected = selectedColors[partIndex] === color;
+                        const isSelected = selectedColors[partIndex] === color.name;
                         return (
                           <button
                             key={color}
                             onClick={() => {
                               const newColors = [...selectedColors];
-                              newColors[partIndex] = color;
+                              newColors[partIndex] = color.name;
                               setSelectedColors(newColors);
                             }}
                             className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-all ${isSelected ? 'border-[#47d7c6] bg-[#47d7c6]/10 text-slate-900 dark:text-white font-medium' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10'}`}
                           >
-                            <span className="block h-4 w-4 rounded-full border border-slate-300 dark:border-white/20 shadow-inner" style={{ backgroundColor: isHex ? color : undefined }}>
-                              {!isHex && <span className="sr-only">{color}</span>}
+                            <span className="block h-4 w-4 rounded-full border border-slate-300 dark:border-white/20 shadow-inner" style={{ backgroundColor: color.value }}>
+                              <span className="sr-only">{color.name}</span>
                             </span>
-                            <span className="capitalize">{!isHex ? color : ''}</span>
+                            <span className="capitalize">{color.name}</span>
                           </button>
                         );
                       })}

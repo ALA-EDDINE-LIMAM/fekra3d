@@ -3,6 +3,7 @@ import AdminShell from '../../components/AdminShell';
 import { Download, Phone, Mail, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { apiBaseUrl } from '../../services/api';
+import { getColorLabel, parseProductColor } from '../../utils/products';
 
 const parseCustomization = (customization) => {
   if (!customization) return { colors: [], material: '' };
@@ -26,7 +27,7 @@ const describeCustomization = (customization) => {
   const labels = [];
 
   if (parsed.colors.length > 0) {
-    labels.push(`Couleur${parsed.colors.length > 1 ? 's' : ''}: ${parsed.colors.join(', ')}`);
+    labels.push(`Couleur${parsed.colors.length > 1 ? 's' : ''}: ${parsed.colors.map(getColorLabel).join(', ')}`);
   }
 
   if (parsed.material) {
@@ -220,7 +221,8 @@ export default function AdminDashboardPage() {
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-3">
                         {order.items?.map((item) => {
-                          const labels = describeCustomization(item.customization);
+                          const customization = parseCustomization(item.customization);
+                          const labels = describeCustomization(customization);
                           const content = (
                             <>
                               <div className="w-10 h-10 rounded-lg bg-black/40 border border-white/10 overflow-hidden flex-shrink-0">
@@ -239,8 +241,20 @@ export default function AdminDashboardPage() {
                                   {item.quantity} x {item.price} TND
                                 </div>
                                 {labels.length > 0 ? (
-                                  <div className="text-[11px] text-slate-400 mt-1">
-                                    {labels.join(' · ')}
+                                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
+                                    {customization.colors.map((color, colorIndex) => {
+                                      const parsedColor = parseProductColor(color);
+                                      return (
+                                        <span
+                                          key={`${parsedColor.value}-${colorIndex}`}
+                                          title={getColorLabel(color)}
+                                          aria-label={`Couleur: ${getColorLabel(color)}`}
+                                          className="inline-block h-4 w-4 rounded-full border border-white/40 shadow-inner"
+                                          style={{ backgroundColor: parsedColor.value }}
+                                        />
+                                      );
+                                    })}
+                                    {customization.material ? <span>{`Matériau: ${customization.material}`}</span> : null}
                                   </div>
                                 ) : null}
                               </div>

@@ -291,7 +291,7 @@ export default function ProductManager() {
   };
 
   const addColor = () => {
-    updateForm('colors', form.colors ? `${form.colors},#ffffff` : '#ffffff');
+    updateForm('colors', form.colors ? `${form.colors},Couleur|#ffffff` : 'Couleur|#ffffff');
   };
 
   const updateColor = (index: number, newColor: string) => {
@@ -753,16 +753,24 @@ export default function ProductManager() {
                     <label className="mb-2 block text-sm font-medium text-slate-300">Couleurs disponibles</label>
                     <div className="flex flex-wrap gap-2">
                       {form.colors.split(',').map((c) => c.trim()).filter(Boolean).map((color, index) => {
-                        const isHex = color.startsWith('#');
+                        const [name = '', value = ''] = color.split('|');
+                        const isHex = value.startsWith('#');
                         return (
                           <div key={index} className="flex items-center gap-1 rounded-full border border-white/10 bg-[#0b1118] p-1 pr-2">
                             <input
+                              type="text"
+                              value={name}
+                              onChange={(e) => updateColor(index, `${e.target.value}|${value || '#ffffff'}`)}
+                              placeholder="Nom"
+                              aria-label="Nom de la couleur"
+                              className="w-24 bg-transparent px-2 text-xs text-white outline-none placeholder:text-slate-500"
+                            />
+                            <input
                               type="color"
-                              value={isHex ? color : '#ffffff'}
-                              onChange={(e) => updateColor(index, e.target.value)}
+                              value={isHex ? value : '#ffffff'}
+                              onChange={(e) => updateColor(index, `${name || 'Couleur'}|${e.target.value}`)}
                               className="h-6 w-6 cursor-pointer rounded-full border-0 bg-transparent p-0"
                             />
-                            {!isHex && <span className="text-xs text-white">{color}</span>}
                             <button type="button" onClick={() => removeColor(index)} className="ml-1 text-slate-500 hover:text-red-400">
                               <X size={14} />
                             </button>

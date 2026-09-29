@@ -171,12 +171,40 @@ const parseCustomization = (customization) => {
   };
 };
 
+const getColorLabel = (color) => {
+  const rawColor = String(color ?? '').trim();
+  const separatorIndex = rawColor.indexOf('|');
+  if (separatorIndex > 0) {
+    return rawColor.slice(0, separatorIndex).trim();
+  }
+
+  const colorNames = {
+    '#000000': 'Noir',
+    '#ffffff': 'Blanc',
+    '#ff0000': 'Rouge',
+    '#00ff00': 'Vert',
+    '#0000ff': 'Bleu',
+    '#ffff00': 'Jaune',
+    '#ffa500': 'Orange',
+    '#800080': 'Violet',
+    '#808080': 'Gris',
+    '#ffc0cb': 'Rose',
+    '#a52a2a': 'Marron',
+  };
+
+  if (colorNames[rawColor.toLowerCase()]) {
+    return colorNames[rawColor.toLowerCase()];
+  }
+
+  return /^#[0-9a-f]{3,8}$/i.test(rawColor) ? 'Couleur personnalisée' : rawColor;
+};
+
 const describeCustomization = (customization) => {
   const parsed = parseCustomization(customization);
   const labels = [];
 
   if (parsed.colors.length > 0) {
-    labels.push(`Couleur${parsed.colors.length > 1 ? 's' : ''} : ${parsed.colors.join(', ')}`);
+    labels.push(`Couleur${parsed.colors.length > 1 ? 's' : ''} : ${parsed.colors.map(getColorLabel).join(', ')}`);
   }
 
   if (parsed.material) {

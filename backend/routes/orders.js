@@ -6,14 +6,18 @@ const authMiddleware = require('../utils/auth');
 
 const parseJson = (value, fallback) => {
   if (Array.isArray(value)) {
-    return value.map((entry) => String(entry).trim()).filter(Boolean);
+    return value
+      .map((entry) => (entry && typeof entry === 'object' ? entry : String(entry).trim()))
+      .filter((entry) => (typeof entry === 'object' ? true : Boolean(entry)));
   }
 
   if (typeof value === 'string' && value.trim()) {
     try {
       const parsed = JSON.parse(value);
       if (Array.isArray(parsed)) {
-        return parsed.map((entry) => String(entry).trim()).filter(Boolean);
+        return parsed
+          .map((entry) => (entry && typeof entry === 'object' ? entry : String(entry).trim()))
+          .filter((entry) => (typeof entry === 'object' ? true : Boolean(entry)));
       }
     } catch {
       return [value.trim()];
@@ -22,6 +26,32 @@ const parseJson = (value, fallback) => {
 
   return fallback;
 };
+
+const COLOR_NAMES = {
+  '#000000': 'Noir',
+  '#ffffff': 'Blanc',
+  '#ff0000': 'Rouge',
+  '#00ff00': 'Vert',
+  '#0000ff': 'Bleu',
+  '#ffff00': 'Jaune',
+  '#ffa500': 'Orange',
+  '#800080': 'Violet',
+  '#808080': 'Gris',
+  '#ffc0cb': 'Rose',
+  '#a52a2a': 'Marron',
+};
+
+const parseProductColors = (value) => parseJson(value, []).map((color) => {
+  if (color && typeof color === 'object') {
+    return { name: String(color.name ?? color.label ?? color.value ?? '').trim(), value: String(color.value ?? color.color ?? color.name ?? '').trim() };
+  }
+
+  const rawColor = String(color).trim();
+  const separatorIndex = rawColor.indexOf('|');
+  return separatorIndex > 0
+    ? { name: rawColor.slice(0, separatorIndex).trim(), value: rawColor.slice(separatorIndex + 1).trim() }
+    : { name: COLOR_NAMES[rawColor.toLowerCase()] ?? rawColor, value: rawColor };
+});
 
 const parseCustomization = (value = {}) => {
   if (typeof value === 'string') {
@@ -78,7 +108,7 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ error: `Produit introuvable : ${item.product_name || item.product_id}` });
       }
 
-      const availableColors = parseJson(product.colors, []);
+      const availableColors = parseProductColors(product.colors);
       const availableMaterials = parseJson(product.materials, []);
       const customizableParts = Number(product.customizableParts) || 1;
       const customization = parseCustomization(item.customization ?? {
@@ -88,7 +118,7 @@ router.post('/', async (req, res) => {
 
       if (availableColors.length > 0) {
         const missingColors = customization.colors.length < customizableParts || customization.colors.some((color) => !color);
-        const invalidColors = customization.colors.some((color) => !availableColors.includes(color));
+        const invalidColors = customization.colors.some((color) => !availableColors.some((availableColor) => availableColor.name === color));
 
         if (missingColors || invalidColors) {
           return res.status(400).json({

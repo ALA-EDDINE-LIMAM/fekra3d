@@ -4,12 +4,13 @@ import PageShell from '../components/PageShell';
 import { useCart } from '../context/CartContext';
 import { CheckCircle } from 'lucide-react';
 import { apiBaseUrl } from '../services/api';
+import { getColorLabel, parseProductColor } from '../utils/products';
 
 const describeCustomization = (customization = {}) => {
   const labels = [];
 
   if (Array.isArray(customization.colors) && customization.colors.length > 0) {
-    labels.push(`Couleur${customization.colors.length > 1 ? 's' : ''}: ${customization.colors.join(', ')}`);
+    labels.push(`Couleur${customization.colors.length > 1 ? 's' : ''}: ${customization.colors.map(getColorLabel).join(', ')}`);
   }
 
   if (customization.material) {
@@ -27,7 +28,8 @@ const isCustomizationComplete = (item) => {
   const requiredParts = Number(product.customizableParts) || 1;
   const selectedColors = Array.isArray(customization.colors) ? customization.colors.filter(Boolean) : [];
 
-  const hasValidColors = !requiredColors || (selectedColors.length >= requiredParts && selectedColors.every((color) => (product.colors || []).includes(color)));
+  const availableColorNames = (product.colors || []).map(parseProductColor).map((color) => color.name);
+  const hasValidColors = !requiredColors || (selectedColors.length >= requiredParts && selectedColors.every((color) => availableColorNames.includes(color)));
   const hasValidMaterial = !requiredMaterials || Boolean(customization.material);
 
   return hasValidColors && hasValidMaterial;

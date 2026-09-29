@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Package, ShoppingCart, Trash2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { getColorLabel } from '../utils/products';
 
 const describeCustomization = (customization = {}) => {
   const labels = [];
 
   if (Array.isArray(customization.colors) && customization.colors.length > 0) {
-    labels.push(`Couleur${customization.colors.length > 1 ? 's' : ''}: ${customization.colors.join(', ')}`);
+    labels.push(`Couleur${customization.colors.length > 1 ? 's' : ''}: ${customization.colors.map(getColorLabel).join(', ')}`);
   }
 
   if (customization.material) {

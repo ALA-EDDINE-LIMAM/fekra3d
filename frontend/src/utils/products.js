@@ -16,6 +16,65 @@ export const normalizeText = (text) => {
 
 export const tokenizeSearchText = (text) => normalizeText(text).split(/\s+/).filter(Boolean);
 
+const COLOR_NAMES = {
+  '#000000': 'Noir',
+  '#ffffff': 'Blanc',
+  '#ff0000': 'Rouge',
+  '#00ff00': 'Vert',
+  '#0000ff': 'Bleu',
+  '#ffff00': 'Jaune',
+  '#ffa500': 'Orange',
+  '#800080': 'Violet',
+  '#808080': 'Gris',
+  '#ffc0cb': 'Rose',
+  '#a52a2a': 'Marron',
+};
+
+export const parseProductColor = (color) => {
+  if (color && typeof color === 'object') {
+    return {
+      name: String(color.name ?? color.label ?? color.value ?? '').trim(),
+      value: String(color.value ?? color.color ?? color.name ?? '').trim(),
+    };
+  }
+
+  const rawColor = String(color ?? '').trim();
+  const separatorIndex = rawColor.indexOf('|');
+  if (separatorIndex > 0) {
+    return {
+      name: rawColor.slice(0, separatorIndex).trim(),
+      value: rawColor.slice(separatorIndex + 1).trim(),
+    };
+  }
+
+  return { name: COLOR_NAMES[rawColor.toLowerCase()] ?? rawColor, value: rawColor };
+};
+
+export const getColorLabel = (color) => {
+  const parsed = parseProductColor(color);
+  if (parsed.name !== parsed.value || !/^#[0-9a-f]{3,8}$/i.test(parsed.value)) {
+    return parsed.name;
+  }
+
+  const normalized = parsed.value.length === 4
+    ? parsed.value.replace(/^#(.)(.)(.)$/, '#$1$1$2$2$3$3')
+    : parsed.value.slice(0, 7);
+  const red = Number.parseInt(normalized.slice(1, 3), 16);
+  const green = Number.parseInt(normalized.slice(3, 5), 16);
+  const blue = Number.parseInt(normalized.slice(5, 7), 16);
+  const namedColors = Object.entries(COLOR_NAMES).map(([value, name]) => ({
+    name,
+    red: Number.parseInt(value.slice(1, 3), 16),
+    green: Number.parseInt(value.slice(3, 5), 16),
+    blue: Number.parseInt(value.slice(5, 7), 16),
+  }));
+
+  return namedColors.reduce((closest, candidate) => {
+    const distance = (red - candidate.red) ** 2 + (green - candidate.green) ** 2 + (blue - candidate.blue) ** 2;
+    return distance < closest.distance ? { name: candidate.name, distance } : closest;
+  }, { name: 'Couleur personnalisée', distance: Number.POSITIVE_INFINITY }).name;
+};
+
 export const getProductSearchScore = (product, searchQuery = '', categoryQuery = '') => {
   const normalizedSearchQuery = normalizeText(searchQuery);
   const normalizedCategoryQuery = normalizeText(categoryQuery);
