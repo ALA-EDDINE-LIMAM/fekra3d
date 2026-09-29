@@ -108,15 +108,8 @@ export default function AdminShell({ title, description, children }) {
   return (
     <div className="flex h-screen overflow-hidden bg-[#07111d]">
       {/* Sidebar */}
-      <aside className="hidden md:flex w-64 h-full flex-shrink-0 border-r border-white/10 bg-[#1e293b]/50 backdrop-blur-xl flex-col">
-        <div className="h-20 flex items-center px-8 border-b border-white/10">
-          <span className="text-xl font-bold text-white tracking-widest uppercase">Admin</span>
-        </div>
-        {renderNavigation()}
-      </aside>
-
       {isSidebarOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
+        <div className="fixed inset-0 z-50 flex">
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
             onClick={() => setIsSidebarOpen(false)}
@@ -144,7 +137,7 @@ export default function AdminShell({ title, description, children }) {
           <div className="flex min-w-0 items-center gap-3">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="shrink-0 rounded-lg p-2 text-slate-300 transition-colors hover:bg-white/5 hover:text-white md:hidden"
+              className="shrink-0 rounded-lg p-2 text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
               aria-label="Ouvrir le menu admin"
             >
               <Menu size={24} />
