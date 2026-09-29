@@ -3,6 +3,7 @@ import { getProductMedia } from './productImages';
 import { resolveMediaUrl } from '../services/api';
 
 export const PRODUCTS_STORAGE_KEY = 'fekra3d-admin-products';
+const API_PRODUCTS_CACHE_KEY = 'fekra3d-api-products-v1';
 
 export const normalizeText = (text) => {
   if (!text) return '';
@@ -75,14 +76,13 @@ const normalizeProduct = (product, index = 0) => {
     ? product.images.map(resolveMediaUrl).filter(Boolean)
     : [];
   const image = resolveMediaUrl(product.image ?? product.image_url ?? images[0] ?? '');
-  const seededImage = image || resolveMediaUrl(getProductMedia(index).image);
   const category = product.category ?? product.Category?.name ?? product.categoryName ?? '';
 
   return {
     ...product,
     category,
-    image: seededImage,
-    images: images.length > 0 ? images : seededImage ? [seededImage] : [],
+    image,
+    images,
     features: Array.isArray(product.features) ? [...product.features] : [],
     price: Number(product.price) || 0,
     originalPrice: product.original_price ? Number(product.original_price) : null,
@@ -136,46 +136,67 @@ export const saveProducts = (nextProducts) => {
   }
 };
 
+let productsRequest;
+let catalogCache = readApiCatalogCache();
+
+function readApiCatalogCache() {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const cachedProducts = JSON.parse(window.localStorage.getItem(API_PRODUCTS_CACHE_KEY) || 'null');
+    return Array.isArray(cachedProducts) ? cachedProducts.map(normalizeProduct) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeApiCatalogCache(data) {
+  try {
+    window.localStorage.setItem(API_PRODUCTS_CACHE_KEY, JSON.stringify(data));
+  } catch {
+    // The in-memory catalogue remains available when browser storage is full.
+  }
+}
+
+export const fetchCatalog = () => {
+  if (!productsRequest) {
+    productsRequest = import('../services/api')
+      .then(({ fetchJson }) => fetchJson('/api/products'))
+      .then((data) => {
+        catalogCache = data.map(normalizeProduct);
+        writeApiCatalogCache(data);
+        return catalogCache;
+      })
+      .catch((error) => {
+        productsRequest = undefined;
+        throw error;
+      });
+  }
+
+  return productsRequest;
+};
+
 export const useProducts = () => {
-  const [catalog, setCatalog] = useState(() => products.map(normalizeProduct));
+  const [catalog, setCatalog] = useState(() => catalogCache ?? []);
 
   useEffect(() => {
     let mounted = true;
-    const syncProducts = () => {
-      if (!mounted) return;
-      const storedProducts = readStoredProducts();
-      setCatalog((storedProducts ?? products).map(normalizeProduct));
-    };
 
-    syncProducts();
-    
     const fetchFromApi = async () => {
       try {
-        const { fetchJson } = await import('../services/api');
-        const data = await fetchJson('/api/products');
+        const data = await fetchCatalog();
         if (mounted) {
-          saveProducts(data);
+          setCatalog(data);
         }
       } catch (error) {
         console.error("Failed to fetch products from API:", error);
       }
     };
-    
+
     fetchFromApi();
-
-    const handleStorage = (event) => {
-      if (event.key === PRODUCTS_STORAGE_KEY) {
-        syncProducts();
-      }
-    };
-
-    window.addEventListener('storage', handleStorage);
-    window.addEventListener('fekra3d-products-updated', syncProducts);
 
     return () => {
       mounted = false;
-      window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('fekra3d-products-updated', syncProducts);
     };
   }, []);
 

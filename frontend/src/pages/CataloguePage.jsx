@@ -4,6 +4,7 @@ import PageShell from '../components/PageShell';
 import Seo from '../components/Seo';
 import { useProducts, getProductSearchScore } from '../utils/products';
 import { useCart } from '../context/CartContext';
+import { ProductCardSkeleton } from '../components/ProductLoadingSkeleton';
 
 export default function CataloguePage() {
   const allProducts = useProducts();
@@ -59,7 +60,9 @@ export default function CataloguePage() {
         noindex={Boolean(searchParam)}
       />
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {products.map((product) => {
+        {products.length === 0 ? Array.from({ length: 10 }, (_, index) => (
+          <ProductCardSkeleton key={`product-skeleton-${index}`} />
+        )) : products.map((product, index) => {
           const discount = product.originalPrice && product.originalPrice > product.price 
             ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) 
             : 0;
@@ -74,20 +77,12 @@ export default function CataloguePage() {
               )}
               <img 
                 src={product.image} 
-                alt="" 
-                aria-hidden="true"
-                loading="lazy"
-                decoding="async"
-                onError={(e) => { e.target.onerror = null; e.target.src = '/logo.jpg'; }}
-                className="absolute inset-0 h-full w-full object-cover blur-sm opacity-40 scale-110 pointer-events-none select-none transition-transform duration-500 group-hover:scale-115" 
-              />
-              <img 
-                src={product.image} 
                 alt={product.name} 
-                loading="lazy"
+                loading={index < 2 ? 'eager' : 'lazy'}
+                fetchPriority={index < 2 ? 'high' : 'auto'}
                 decoding="async"
                 onError={(e) => { e.target.onerror = null; e.target.src = '/logo.jpg'; }}
-                className="relative z-10 h-full w-full object-contain transition-transform duration-500 group-hover:scale-105" 
+                className="relative z-10 h-full w-full object-contain"
               />
             </Link>
             

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { CheckCircle, Link2, UploadCloud, AlertCircle, Loader2 } from 'lucide-react';
 import PageShell from '../components/PageShell';
 import { apiBaseUrl } from '../services/api';
@@ -116,6 +117,11 @@ export default function SurMesurePage() {
       title="Créer une impression personnalisée"
       description="Partagez un lien vers un modèle 3D ou téléchargez votre propre fichier STL pour obtenir un devis rapide."
     >
+      <Helmet>
+        <title>Impression 3D Sur Mesure | Fekra3D</title>
+        <meta name="description" content="Service d'impression 3D sur mesure en Tunisie. Envoyez votre fichier STL ou 3D et obtenez un devis personnalisé rapidement." />
+        <meta name="keywords" content="impression 3d sur mesure, devis impression 3d, impression stl, fekra3d" />
+      </Helmet>
       <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
         <form onSubmit={handleSubmit} className="glass-panel space-y-6 p-6 sm:p-8 border border-slate-200 dark:border-white/10 rounded-3xl bg-white/80 dark:bg-[#1e293b]/20 backdrop-blur-md">
           {error && (

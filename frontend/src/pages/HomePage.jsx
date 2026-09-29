@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useProducts } from '../utils/products';
 import { useCart } from '../context/CartContext';
 import Seo, { SITE_URL } from '../components/Seo';
+import { ProductCardSkeleton, ProductHeroSkeleton } from '../components/ProductLoadingSkeleton';
 
 export default function HomePage() {
   const products = useProducts();
@@ -116,21 +117,13 @@ export default function HomePage() {
                  <div className="w-[220px] md:w-[240px] rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl shadow-2xl p-3">
                     <div className="aspect-[4/3] w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-950 mb-2.5 relative border border-slate-200/50 dark:border-white/5 flex items-center justify-center">
                       <img 
-                        key={`bg-${activeProduct.id}`}
-                        src={activeProduct.image}
-                        alt=""
-                        aria-hidden="true"
-                        loading="lazy"
-                        decoding="async"
-                        className="absolute inset-0 h-full w-full object-cover blur-sm opacity-40 scale-110 pointer-events-none select-none transition-opacity duration-700 ease-in-out"
-                      />
-                      <img 
                         key={activeProduct.id}
                         src={activeProduct.image}
                         alt={activeProduct.name}
+                        loading="eager"
                         fetchPriority="high"
                         decoding="async"
-                        className="relative z-10 h-full w-full object-contain transition-opacity duration-700 ease-in-out"
+                        className="relative z-10 h-full w-full object-contain"
                       />
                     </div>
                     
@@ -159,14 +152,7 @@ export default function HomePage() {
                       </div>
                     </div>
                  </div>
-               ) : (
-                 <div className="flex w-[220px] md:w-[240px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/5 p-6 text-center shadow-2xl">
-                    <div className="mb-3 rounded-full bg-white/5 p-3 text-slate-500">
-                      <ShoppingCart size={24} />
-                    </div>
-                    <p className="text-xs text-slate-400">Le catalogue est actuellement vide. Ajoutez des produits !</p>
-                 </div>
-               )}
+               ) : <ProductHeroSkeleton />}
             </div>
           </div>
         </div>
@@ -186,7 +172,9 @@ export default function HomePage() {
           </div>
 
           <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {momentProducts.map((product) => {
+            {momentProducts.length === 0 ? Array.from({ length: 10 }, (_, index) => (
+              <ProductCardSkeleton key={`home-skeleton-${index}`} />
+            )) : momentProducts.map((product) => {
               const discount = product.originalPrice && product.originalPrice > product.price 
                 ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) 
                 : 0;
@@ -201,20 +189,12 @@ export default function HomePage() {
                   )}
                   <img 
                     src={product.image} 
-                    alt="" 
-                    aria-hidden="true"
-                    loading="lazy"
-                    decoding="async"
-                    onError={(e) => { e.target.onerror = null; e.target.src = '/logo.jpg'; }}
-                    className="absolute inset-0 h-full w-full object-cover blur-sm opacity-40 scale-110 pointer-events-none select-none transition-transform duration-500 group-hover:scale-115" 
-                  />
-                  <img 
-                    src={product.image} 
                     alt={product.name} 
-                    loading="lazy"
+                    loading={product === momentProducts[0] ? 'eager' : 'lazy'}
+                    fetchPriority={product === momentProducts[0] ? 'high' : 'auto'}
                     decoding="async"
                     onError={(e) => { e.target.onerror = null; e.target.src = '/logo.jpg'; }}
-                    className="relative z-10 h-full w-full object-contain transition-transform duration-500 group-hover:scale-105" 
+                    className="relative z-10 h-full w-full object-contain"
                   />
                 </Link>
                 

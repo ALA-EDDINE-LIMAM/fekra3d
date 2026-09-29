@@ -1,6 +1,7 @@
 import React, { useState, Suspense, useMemo, useRef, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import PageShell from '../components/PageShell';
+import Seo, { SITE_URL } from '../components/Seo';
 import { useCart } from '../context/CartContext';
 import { useProductById } from '../utils/products';
 import { resolveMediaUrl } from '../services/api';
@@ -204,6 +205,10 @@ function ProductGallery({ product, selectedColors }) {
             <img 
               src={mainImage} 
               alt={product.name} 
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = '/logo.jpg'; }}
               className="relative z-10 h-full w-full object-contain" 
             />
           </div>
@@ -238,7 +243,13 @@ function ProductGallery({ product, selectedColors }) {
               onClick={() => setMainImage(image)}
               className={`overflow-hidden rounded-2xl border p-1 transition-all ${mainImage === image ? 'border-[#47d7c6] bg-[#47d7c6]/10' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0c1420] hover:border-slate-350 dark:hover:border-white/20'}`}
             >
-              <img src={image} alt={`${product.name} - Vue ${index + 1}`} className="aspect-square w-full rounded-xl object-cover" />
+              <img
+                src={image}
+                alt={`${product.name} - Vue ${index + 1}`}
+                loading="lazy"
+                decoding="async"
+                className="aspect-square w-full rounded-xl object-cover"
+              />
             </button>
           ))}
         </div>
@@ -289,6 +300,7 @@ export default function ProductPage() {
   if (!product) {
     return (
       <PageShell eyebrow="Produit" title="Produit introuvable" description="L'article demandé n'existe pas dans le catalogue.">
+        <Seo title="Produit introuvable | Fekra3D" description="Ce produit n'existe plus dans le catalogue Fekra3D." noindex />
         <Link to="/catalogue" className="inline-flex rounded-xl bg-[#47d7c6] px-5 py-3 font-semibold text-slate-950">
           Retour au catalogue
         </Link>
@@ -305,6 +317,30 @@ export default function ProductPage() {
 
   return (
     <PageShell eyebrow="Produit" title={product.name} description={product.description}>
+      <Seo
+        title={`${product.name} | Fekra3D Impression 3D`}
+        description={product.description || `Achetez ${product.name} sur Fekra3D. Création en impression 3D fabriquée en Tunisie.`}
+        path={`/produit/${product.id}`}
+        image={resolvedImages?.mainImage || product.image}
+        type="product"
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          name: product.name,
+          description: product.description,
+          image: resolvedImages?.mainImage || product.image,
+          sku: String(product.id),
+          category: product.category,
+          brand: { '@type': 'Brand', name: 'Fekra3D' },
+          offers: {
+            '@type': 'Offer',
+            url: `${SITE_URL}/produit/${product.id}`,
+            priceCurrency: 'TND',
+            price: Number(product.price).toFixed(3),
+            availability: 'https://schema.org/InStock',
+          },
+        }}
+      />
       <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <ProductGallery key={product.id} product={product} selectedColors={selectedColors} />
         <div className="glass-panel flex flex-col gap-6 p-6">
