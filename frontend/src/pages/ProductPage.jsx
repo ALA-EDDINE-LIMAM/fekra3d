@@ -308,6 +308,15 @@ export default function ProductPage() {
     );
   }
 
+  const productImage = useMemo(() => {
+    const gallery = Array.isArray(product?.images) ? product.images : [];
+    const fallback = product?.image ?? product?.image_url ?? '';
+    const nextImages = gallery.map(resolveMediaUrl).filter(Boolean);
+    const primary = resolveMediaUrl(fallback) || nextImages[0] || '';
+
+    return primary;
+  }, [product?.image, product?.image_url, product?.images]);
+
   const technicalInfo = [
     { label: 'Matériau', value: selectedMaterial || 'Standard' },
     { label: 'Dimensions', value: product.dimensions || 'Standard' },
@@ -321,14 +330,14 @@ export default function ProductPage() {
         title={`${product.name} | Fekra3D Impression 3D`}
         description={product.description || `Achetez ${product.name} sur Fekra3D. Création en impression 3D fabriquée en Tunisie.`}
         path={`/produit/${product.id}`}
-        image={resolvedImages?.mainImage || product.image}
+        image={productImage || product.image}
         type="product"
         structuredData={{
           '@context': 'https://schema.org',
           '@type': 'Product',
           name: product.name,
           description: product.description,
-          image: resolvedImages?.mainImage || product.image,
+          image: productImage || product.image,
           sku: String(product.id),
           category: product.category,
           brand: { '@type': 'Brand', name: 'Fekra3D' },
