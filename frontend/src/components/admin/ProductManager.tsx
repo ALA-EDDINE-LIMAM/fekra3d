@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Check, Edit2, Image as ImageIcon, Loader2, Plus, Search, Trash2, Upload, X, Box } from 'lucide-react';
 import { apiBaseUrl } from '../../services/api';
-import { getProducts, products as fallbackProducts, saveProducts } from '../../utils/products';
+import { products as fallbackProducts, saveProducts } from '../../utils/products';
 
 type CategoryOption = {
   id: string;
@@ -195,11 +195,10 @@ export default function ProductManager() {
         const mergedProducts = asStoredProductList(data);
         saveProducts(mergedProducts);
         setProducts(mergedProducts.map(normalizeProduct));
-      } catch {
-        const localProducts = getProducts();
-        saveProducts(localProducts);
-        setProducts(localProducts.map(normalizeProduct));
-        setErrorMessage('Mode local activé: impossible de joindre l’API, les produits sont affichés depuis le catalogue intégré.');
+      } catch (error) {
+        console.error(error);
+        setProducts([]);
+        setErrorMessage('Impossible de joindre la base de données. Aucun produit local ne sera utilisé dans l’administration.');
       } finally {
         setIsLoading(false);
       }
@@ -390,39 +389,11 @@ export default function ProductManager() {
 
       showToast(editingProductId ? 'Produit mis à jour.' : 'Produit ajouté.');
       resetModal();
-    } catch {
-      const savedProduct = {
-        id: editingProductId ?? crypto.randomUUID(),
-        name,
-        description,
-        price,
-        original_price: originalPrice,
-        stock: Number.isNaN(stock) ? 0 : stock,
-        image_url: primaryImage || null,
-        images: images.length > 0 ? images : primaryImage ? [primaryImage] : [],
-        category_id: form.categoryId,
-        Category: {
-          name: CATEGORY_OPTIONS.find((category) => category.id === form.categoryId)?.name ?? 'Sans catégorie',
-        },
-        features: editingProduct?.features ?? [],
-        model3d: form.model3d.trim() || null,
-        colors: form.colors.split(',').map((c) => c.trim()).filter(Boolean),
-        materials: form.materials.split(',').map((m) => m.trim()).filter(Boolean),
-        customizableParts: Number.isNaN(Number(form.customizableParts)) ? 1 : Number(form.customizableParts),
-        dimensions: form.dimensions.trim() || null,
-        weight: form.weight.trim() || null,
-      } satisfies ProductRecord;
-
-      const localProducts = getProducts();
-      const nextProducts = editingProductId
-        ? localProducts.map((entry) => (entry.id === editingProductId ? savedProduct : entry))
-        : [savedProduct, ...localProducts];
-
-      saveProducts(nextProducts);
-      setProducts(nextProducts.map(normalizeProduct));
-      showToast(editingProductId ? 'Produit mis à jour en mode local.' : 'Produit ajouté en mode local.');
-      resetModal();
-      setErrorMessage('');
+    } catch (error) {
+      console.error(error);
+      const message = error instanceof Error ? error.message : 'Impossible de joindre la base de données.';
+      showToast('Échec: produit non enregistré.');
+      setErrorMessage(message);
     } finally {
       setSaving(false);
     }
@@ -450,13 +421,10 @@ export default function ProductManager() {
       setProducts(nextProducts);
       saveProducts(nextProducts);
       showToast('Produit supprimé.');
-    } catch {
-      const localProducts = getProducts();
-      const nextProducts = localProducts.filter((entry) => entry.id !== product.id);
-      saveProducts(nextProducts);
-      setProducts(nextProducts.map(normalizeProduct));
-      showToast('Produit supprimé en mode local.');
-      setErrorMessage('');
+    } catch (error) {
+      console.error(error);
+      showToast('Échec: produit non supprimé.');
+      setErrorMessage(error instanceof Error ? error.message : 'Impossible de joindre la base de données.');
     }
   };
 

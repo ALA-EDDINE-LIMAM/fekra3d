@@ -24,6 +24,14 @@ const Product = sequelize.define('Product', {
   weight: { type: DataTypes.STRING }
 });
 
+const MediaAsset = sequelize.define('MediaAsset', {
+  id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  data: { type: DataTypes.BLOB('long'), allowNull: false },
+  mime_type: { type: DataTypes.STRING, allowNull: false },
+  original_name: { type: DataTypes.STRING },
+  size: { type: DataTypes.INTEGER, allowNull: false },
+});
+
 const ProductVariant = sequelize.define('ProductVariant', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
   color: { type: DataTypes.STRING },
@@ -101,6 +109,7 @@ module.exports = {
   sequelize,
   Category,
   Product,
+  MediaAsset,
   ProductVariant,
   Order,
   OrderItem,

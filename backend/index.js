@@ -9,17 +9,19 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { Sequelize } = require('sequelize');
 const { sequelize } = require('./models');
+const { MediaAsset } = require('./models');
+const authMiddleware = require('./utils/auth');
 
 // Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, 'uploads');
+const uploadsDir = path.resolve(process.env.UPLOADS_DIR || path.join(__dirname, 'uploads'));
 if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
+  fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
 // Configure Multer storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/');
+    cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -145,10 +147,25 @@ app.get('/uploads/:filename', async (req, res, next) => {
 });
 
 // Uploaded filenames are unique, so browsers and CDNs can cache them safely.
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+app.use('/uploads', express.static(uploadsDir, {
   maxAge: '7d',
   immutable: true,
 }));
+
+app.get('/api/media/:id', async (req, res, next) => {
+  try {
+    const media = await MediaAsset.findByPk(req.params.id);
+    if (!media) {
+      return res.status(404).json({ error: 'Image introuvable.' });
+    }
+
+    res.type(media.mime_type);
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    return res.send(media.data);
+  } catch (error) {
+    return next(error);
+  }
+});
 
 // Routes
 app.use('/api/products', productRoutes);
@@ -158,7 +175,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/custom-requests', customRequestRoutes);
 
 // Secure File upload endpoint with MIME type and size checks
-app.post('/api/upload', upload.single('file'), async (req, res) => {
+app.post('/api/upload', authMiddleware, upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Aucun fichier uploadé.' });
   }
@@ -202,6 +219,29 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     } catch (err) {
       console.error("Erreur de compression d'image:", err);
       // Fallback to original filename if compression fails
+    }
+  }
+
+  if (isImage) {
+    try {
+      const storedPath = path.join(req.file.destination, filename);
+      const imageBuffer = fs.readFileSync(storedPath);
+      const media = await MediaAsset.create({
+        data: imageBuffer,
+        mime_type: 'image/webp',
+        original_name: req.file.originalname,
+        size: imageBuffer.length,
+      });
+
+      try { fs.unlinkSync(storedPath); } catch (error) {
+        console.warn('Impossible de supprimer le fichier image temporaire:', error.message);
+      }
+
+      const fileUrl = `${req.protocol}://${req.get('host')}/api/media/${media.id}`;
+      return res.json({ url: fileUrl });
+    } catch (error) {
+      console.error("Erreur d'enregistrement de l'image en base:", error);
+      return res.status(500).json({ error: "Impossible d'enregistrer l'image en base de données." });
     }
   }
 
