@@ -153,6 +153,17 @@ const normalizeProduct = (product, index = 0) => {
   };
 };
 
+const deduplicateProducts = (productList) => {
+  const uniqueProducts = new Map();
+  productList.forEach((product) => {
+    const productKey = normalizeText(product.name) || product.id;
+    if (!uniqueProducts.has(productKey)) {
+      uniqueProducts.set(productKey, product);
+    }
+  });
+  return [...uniqueProducts.values()];
+};
+
 const readStoredProducts = () => {
   if (typeof window === 'undefined') {
     return null;
@@ -203,7 +214,7 @@ function readApiCatalogCache() {
 
   try {
     const cachedProducts = JSON.parse(window.localStorage.getItem(API_PRODUCTS_CACHE_KEY) || 'null');
-    return Array.isArray(cachedProducts) ? cachedProducts.map(normalizeProduct) : null;
+    return Array.isArray(cachedProducts) ? deduplicateProducts(cachedProducts.map(normalizeProduct)) : null;
   } catch {
     return null;
   }
@@ -222,8 +233,8 @@ export const fetchCatalog = () => {
     productsRequest = import('../services/api')
       .then(({ fetchJson }) => fetchJson('/api/products'))
       .then((data) => {
-        catalogCache = data.map(normalizeProduct);
-        writeApiCatalogCache(data);
+        catalogCache = deduplicateProducts(data.map(normalizeProduct));
+        writeApiCatalogCache(catalogCache);
         return catalogCache;
       })
       .catch((error) => {

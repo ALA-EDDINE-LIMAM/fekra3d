@@ -6,7 +6,7 @@ import { useCart } from '../context/CartContext';
 import { parseProductColor, useProductById } from '../utils/products';
 import { resolveMediaUrl } from '../services/api';
 import '@google/model-viewer';
-import { Box, Image as ImageIcon, Ruler, Scale, Layers, Star } from 'lucide-react';
+import { Box, ChevronLeft, ChevronRight, Image as ImageIcon, Ruler, Scale, Layers, Star } from 'lucide-react';
 import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls, Stage } from '@react-three/drei';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
@@ -154,6 +154,19 @@ function ProductGallery({ product, selectedColors }) {
     setMainImage(resolvedImages.mainImage);
   }, [resolvedImages.mainImage]);
 
+  const activeImageIndex = Math.max(0, resolvedImages.galleryImages.indexOf(mainImage));
+  const hasMultipleImages = resolvedImages.galleryImages.length > 1;
+  const showPreviousImage = () => {
+    if (!hasMultipleImages) return;
+    const previousIndex = (activeImageIndex - 1 + resolvedImages.galleryImages.length) % resolvedImages.galleryImages.length;
+    setMainImage(resolvedImages.galleryImages[previousIndex]);
+  };
+  const showNextImage = () => {
+    if (!hasMultipleImages) return;
+    const nextIndex = (activeImageIndex + 1) % resolvedImages.galleryImages.length;
+    setMainImage(resolvedImages.galleryImages[nextIndex]);
+  };
+
   useEffect(() => {
     const modelViewer = modelViewerRef.current;
     if (!modelViewer) return;
@@ -208,9 +221,40 @@ function ProductGallery({ product, selectedColors }) {
               loading="eager"
               fetchPriority="high"
               decoding="async"
-              onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = '/logo.jpg'; }}
+              onError={(event) => {
+                const sameProductImage = resolvedImages.galleryImages.find((image) => image !== mainImage);
+                if (sameProductImage && !event.currentTarget.dataset.sameProductFallback) {
+                  event.currentTarget.dataset.sameProductFallback = 'true';
+                  event.currentTarget.src = sameProductImage;
+                  return;
+                }
+                event.currentTarget.style.visibility = 'hidden';
+              }}
               className="relative z-10 h-full w-full object-contain" 
             />
+            {hasMultipleImages && (
+              <>
+                <button
+                  type="button"
+                  onClick={showPreviousImage}
+                  aria-label="Image précédente"
+                  className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-slate-950/60 text-white shadow-lg backdrop-blur transition hover:bg-[#47d7c6] hover:text-slate-950"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button
+                  type="button"
+                  onClick={showNextImage}
+                  aria-label="Image suivante"
+                  className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-slate-950/60 text-white shadow-lg backdrop-blur transition hover:bg-[#47d7c6] hover:text-slate-950"
+                >
+                  <ChevronRight size={20} />
+                </button>
+                <span className="absolute right-3 top-3 z-20 rounded-full bg-slate-950/65 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
+                  {activeImageIndex + 1} / {resolvedImages.galleryImages.length}
+                </span>
+              </>
+            )}
           </div>
         )}
 
@@ -234,14 +278,15 @@ function ProductGallery({ product, selectedColors }) {
         )}
       </div>
 
-      {resolvedImages.galleryImages.length > 1 ? (
-        <div className="grid grid-cols-4 gap-3">
+      {hasMultipleImages ? (
+        <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
           {resolvedImages.galleryImages.map((image, index) => (
             <button
               key={`${product.id}-${image}-${index}`}
               type="button"
               onClick={() => setMainImage(image)}
-              className={`overflow-hidden rounded-2xl border p-1 transition-all ${mainImage === image ? 'border-[#47d7c6] bg-[#47d7c6]/10' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0c1420] hover:border-slate-350 dark:hover:border-white/20'}`}
+              aria-label={`Afficher l'image ${index + 1}`}
+              className={`relative overflow-hidden rounded-2xl border p-1 transition-all ${mainImage === image ? 'border-[#47d7c6] bg-[#47d7c6]/10 ring-2 ring-[#47d7c6]/30' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0c1420] hover:border-slate-350 dark:hover:border-white/20'}`}
             >
               <img
                 src={image}
@@ -255,7 +300,7 @@ function ProductGallery({ product, selectedColors }) {
         </div>
       ) : null}
 
-      {resolvedImages.galleryImages.length > 1 ? (
+      {hasMultipleImages ? (
         <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
           {resolvedImages.galleryImages.length} image(s) disponible(s)
         </p>

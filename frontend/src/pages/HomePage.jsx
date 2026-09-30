@@ -194,7 +194,15 @@ export default function HomePage() {
                     loading={product === momentProducts[0] ? 'eager' : 'lazy'}
                     fetchPriority={product === momentProducts[0] ? 'high' : 'auto'}
                     decoding="async"
-                    onError={(e) => { e.target.onerror = null; e.target.src = '/products/2026_07_04_12_16_48_IMG_0852.webp'; }}
+                    onError={(event) => {
+                      const sameProductImage = product.images?.find((image) => image !== product.image);
+                      if (sameProductImage && !event.currentTarget.dataset.sameProductFallback) {
+                        event.currentTarget.dataset.sameProductFallback = 'true';
+                        event.currentTarget.src = sameProductImage;
+                        return;
+                      }
+                      event.currentTarget.style.visibility = 'hidden';
+                    }}
                     className="relative z-10 h-full w-full object-contain"
                   />
                 </Link>

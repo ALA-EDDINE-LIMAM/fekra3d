@@ -81,9 +81,26 @@ export default function CataloguePage() {
                 loading={index < 2 ? 'eager' : 'lazy'}
                 fetchPriority={index < 2 ? 'high' : 'auto'}
                 decoding="async"
-                onError={(e) => { e.target.onerror = null; e.target.src = '/logo.jpg'; }}
+                onError={(event) => {
+                  const sameProductImage = product.images?.find((image) => image !== product.image);
+                  if (sameProductImage && !event.currentTarget.dataset.sameProductFallback) {
+                    event.currentTarget.dataset.sameProductFallback = 'true';
+                    event.currentTarget.src = sameProductImage;
+                    return;
+                  }
+                  event.currentTarget.style.visibility = 'hidden';
+                }}
                 className="relative z-10 h-full w-full object-contain"
               />
+              {product.images?.[1] && product.images[1] !== product.image && (
+                <img
+                  src={product.images[1]}
+                  alt={`${product.name} - Vue 2`}
+                  loading="lazy"
+                  decoding="async"
+                  className="absolute inset-0 z-10 h-full w-full object-contain opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                />
+              )}
             </Link>
             
             <div className="flex flex-col flex-1 p-3 bg-transparent z-10">
