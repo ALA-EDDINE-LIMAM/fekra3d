@@ -55,7 +55,7 @@ export default function HomePage() {
           name: 'Fekra3D',
           url: `${SITE_URL}/`,
           logo: `${SITE_URL}/logo.jpg`,
-          image: `${SITE_URL}/products/2026_07_04_12_16_48_IMG_0852.webp`,
+          image: `${SITE_URL}/icon-social.png`,
           email: 'fekra3d.printing@gmail.com',
           telephone: '+21655084823',
           description: "Boutique tunisienne spécialisée dans l'impression 3D.",

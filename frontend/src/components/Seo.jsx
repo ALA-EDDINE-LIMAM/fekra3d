@@ -1,12 +1,13 @@
 import { Helmet } from 'react-helmet-async';
 
 export const SITE_URL = 'https://fekra3d.tn';
+export const DEFAULT_SOCIAL_IMAGE = '/icon-social.png';
 
 export default function Seo({
   title,
   description,
   path = '/',
-  image = '/logo.jpg',
+  image = DEFAULT_SOCIAL_IMAGE,
   type = 'website',
   noindex = false,
   structuredData,
@@ -25,6 +26,7 @@ export default function Seo({
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={imageUrl} />
+      <meta property="og:image:alt" content={`${title} - Fekra3D`} />
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
