@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getProductMedia } from './productImages';
-import { fetchJson, resolveMediaUrl } from '../services/api';
+import { resolveMediaUrl } from '../services/api';
 
 export const PRODUCTS_STORAGE_KEY = 'fekra3d-admin-products';
 const API_PRODUCTS_CACHE_KEY = 'fekra3d-api-products-v1';
@@ -230,7 +230,8 @@ function writeApiCatalogCache(data) {
 
 export const fetchCatalog = () => {
   if (!productsRequest) {
-    productsRequest = fetchJson('/api/products')
+    productsRequest = import('../services/api')
+      .then(({ fetchJson }) => fetchJson('/api/products'))
       .then((data) => {
         catalogCache = deduplicateProducts(data.map(normalizeProduct));
         writeApiCatalogCache(catalogCache);
@@ -246,7 +247,7 @@ export const fetchCatalog = () => {
 };
 
 export const useProducts = () => {
-  const [catalog, setCatalog] = useState(() => catalogCache ?? getProducts());
+  const [catalog, setCatalog] = useState(() => catalogCache ?? []);
 
   useEffect(() => {
     let mounted = true;
