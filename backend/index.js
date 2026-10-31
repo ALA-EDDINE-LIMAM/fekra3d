@@ -148,7 +148,7 @@ app.get('/uploads/:filename', async (req, res, next) => {
 
 // Uploaded filenames are unique, so browsers and CDNs can cache them safely.
 app.use('/uploads', express.static(uploadsDir, {
-  maxAge: '7d',
+  maxAge: '1y',
   immutable: true,
 }));
 

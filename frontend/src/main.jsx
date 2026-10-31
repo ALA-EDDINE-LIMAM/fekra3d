@@ -11,6 +11,14 @@ import { Analytics } from '@vercel/analytics/react';
 
 fetchCatalog().catch((error) => console.error('Failed to preload products:', error));
 
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((error) => {
+      console.error('Failed to register image cache:', error);
+    });
+  });
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <HelmetProvider>
