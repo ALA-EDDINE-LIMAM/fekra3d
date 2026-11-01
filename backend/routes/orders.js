@@ -177,20 +177,21 @@ router.post('/', async (req, res) => {
     
     let emailSent = false;
 
-    // On tente l'envoi avant de répondre, mais l'échec SMTP ne bloque pas la commande.
+    const serializedOrder = serializeOrder(order);
     if (order.email) {
-      const emailInfo = await sendOrderConfirmationEmail(serializeOrder(order));
+      const emailInfo = await sendOrderConfirmationEmail(serializedOrder);
       emailSent = Boolean(emailInfo);
     }
 
     // La notification administrateur est indépendante de la confirmation client.
-    await sendNewOrderAdminNotification(serializeOrder(order));
+    const adminEmailSent = Boolean(await sendNewOrderAdminNotification(serializedOrder));
 
     res.status(201).json({
       message: 'Order created successfully',
       tracking_code: order.tracking_code,
       email_sent: emailSent,
-      order: serializeOrder(order)
+      admin_email_sent: adminEmailSent,
+      order: serializedOrder
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
