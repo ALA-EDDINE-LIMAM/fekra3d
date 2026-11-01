@@ -397,6 +397,105 @@ const sendOrderConfirmationEmail = async (order) => {
   }
 };
 
+const sendNewOrderAdminNotification = async (order) => {
+  const adminEmail = String(process.env.ADMIN_EMAIL || 'ahmed.espironza@gmail.com').trim();
+  if (!adminEmail) return;
+
+  try {
+    const itemLines = order.items.map((item) => {
+      const customizationParts = describeCustomization(item.customization);
+      const customizationText = customizationParts.length > 0
+        ? ` | ${customizationParts.join(' | ')}`
+        : '';
+
+      return `- ${item.product_name || 'Produit'} x${item.quantity} (${Number(item.price).toFixed(3)} TND)${customizationText}`;
+    }).join('\n');
+
+    const textContent = [
+      'Nouvelle commande reçue - Fekra 3D',
+      '',
+      `Client : ${order.full_name || 'Non renseigné'}`,
+      `E-mail : ${order.email || 'Non renseigné'}`,
+      `Téléphone : ${order.phone || 'Non renseigné'}`,
+      `Adresse : ${order.address || 'Non renseignée'}`,
+      `Ville : ${order.city || 'Non renseignée'}`,
+      `Code de suivi : ${order.tracking_code}`,
+      '',
+      'Produits :',
+      itemLines,
+      '',
+      `Total : ${Number(order.total_price).toFixed(3)} TND`,
+    ].join('\n');
+
+    const itemsHtml = order.items.map((item) => {
+      const customizationParts = describeCustomization(item.customization);
+      const customizationHtml = customizationParts.length > 0
+        ? `<div style="margin-top: 4px; font-size: 12px; color: #666;">${customizationParts.join('<br/>')}</div>`
+        : '';
+
+      return `
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+            ${item.product_name || 'Produit'}${customizationHtml}
+          </td>
+          <td style="padding: 8px; border-bottom: 1px solid #ddd;">${item.quantity}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">${Number(item.price).toFixed(3)} TND</td>
+        </tr>
+      `;
+    }).join('');
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 650px; margin: 0 auto; color: #333;">
+        <h2 style="color: #47d7c6;">Nouvelle commande reçue</h2>
+        <p>Une nouvelle commande vient d'être enregistrée sur Fekra 3D.</p>
+        <div style="background-color: #f8f9fa; padding: 16px; border-radius: 8px; margin: 20px 0;">
+          <p><strong>Client :</strong> ${order.full_name || 'Non renseigné'}</p>
+          <p><strong>E-mail :</strong> ${order.email || 'Non renseigné'}</p>
+          <p><strong>Téléphone :</strong> ${order.phone || 'Non renseigné'}</p>
+          <p><strong>Adresse :</strong> ${order.address || 'Non renseignée'}, ${order.city || 'Non renseignée'}</p>
+          <p><strong>Code de suivi :</strong> ${order.tracking_code}</p>
+        </div>
+        <h3>Détails de la commande</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background-color: #f1f1f1;">
+              <th style="padding: 8px; text-align: left;">Produit</th>
+              <th style="padding: 8px; text-align: left;">Quantité</th>
+              <th style="padding: 8px; text-align: right;">Prix unitaire</th>
+            </tr>
+          </thead>
+          <tbody>${itemsHtml}</tbody>
+        </table>
+        <p style="font-size: 18px; text-align: right;"><strong>Total : ${Number(order.total_price).toFixed(3)} TND</strong></p>
+      </div>
+    `;
+
+    const info = await sendTransactionalEmail({
+      to: adminEmail,
+      subject: `Nouvelle commande Fekra 3D - N° ${order.tracking_code}`,
+      html: htmlContent,
+      text: textContent,
+      replyTo: order.email ? `"${order.full_name || 'Client'}" <${order.email}>` : formatReplyToAddress(),
+    });
+
+    console.log('New order admin notification sent:', {
+      to: adminEmail,
+      trackingCode: order.tracking_code,
+      messageId: info.messageId,
+    });
+
+    return info;
+  } catch (error) {
+    if (isSmtpAuthError(error)) {
+      console.warn('SMTP authentication failed for new order admin notification.');
+      return null;
+    }
+
+    console.error('Error sending new order admin notification:', error?.message || error, error?.responseBody || '');
+    return null;
+  }
+};
+
 const sendContactEmail = async ({ name, email, subject, message }) => {
   try {
     const htmlContent = `
@@ -470,7 +569,7 @@ const sendPinCodeEmail = async (email, pinCode) => {
 module.exports = {
   formatFromAddress,
   sendOrderConfirmationEmail,
+  sendNewOrderAdminNotification,
   sendContactEmail,
   sendPinCodeEmail
 };
-

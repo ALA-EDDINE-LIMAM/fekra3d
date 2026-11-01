@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { Order, OrderItem, Product } = require('../models');
-const { sendOrderConfirmationEmail } = require('../utils/email');
+const {
+  sendOrderConfirmationEmail,
+  sendNewOrderAdminNotification,
+} = require('../utils/email');
 const authMiddleware = require('../utils/auth');
 
 const parseJson = (value, fallback) => {
@@ -179,6 +182,9 @@ router.post('/', async (req, res) => {
       const emailInfo = await sendOrderConfirmationEmail(serializeOrder(order));
       emailSent = Boolean(emailInfo);
     }
+
+    // La notification administrateur est indépendante de la confirmation client.
+    await sendNewOrderAdminNotification(serializeOrder(order));
 
     res.status(201).json({
       message: 'Order created successfully',
