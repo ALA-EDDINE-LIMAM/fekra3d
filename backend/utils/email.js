@@ -470,12 +470,20 @@ const sendNewOrderAdminNotification = async (order) => {
       </div>
     `;
 
+    const customerEmail = String(order.email || '').trim();
+    const replyTo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)
+      ? {
+        name: String(order.full_name || 'Client').trim() || 'Client',
+        email: customerEmail,
+      }
+      : formatReplyToAddress();
+
     const info = await sendTransactionalEmail({
       to: adminEmail,
       subject: `Nouvelle commande Fekra 3D - N° ${order.tracking_code}`,
       html: htmlContent,
       text: textContent,
-      replyTo: order.email ? `"${order.full_name || 'Client'}" <${order.email}>` : formatReplyToAddress(),
+      replyTo,
     });
 
     console.log('New order admin notification sent:', {
