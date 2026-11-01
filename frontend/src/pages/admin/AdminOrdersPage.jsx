@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import AdminShell from '../../components/AdminShell';
 import { apiBaseUrl } from '../../services/api';
-import { Download, Phone, Mail, Clock, CheckCircle, Package, AlertCircle } from 'lucide-react';
+import { Download, Phone, AlertCircle, Trash2 } from 'lucide-react';
 import { getColorLabel, parseProductColor } from '../../utils/products';
 
 const parseCustomization = (customization) => {
@@ -40,12 +40,14 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedOrderIds, setSelectedOrderIds] = useState([]);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
     fetch(`${apiBaseUrl}/api/orders`, {
       headers: {
-        'Authorization': `Bearer ${token}`
+        'Authorization': Bearer ,
       }
     })
       .then(res => {
@@ -69,7 +71,7 @@ export default function AdminOrdersPage() {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': Bearer ,
         },
         body: JSON.stringify({ status: newStatus })
       });
@@ -81,6 +83,51 @@ export default function AdminOrdersPage() {
     } catch (err) {
       console.error(err);
       alert("Erreur réseau.");
+    }
+  };
+
+  const allOrdersSelected = orders.length > 0 && selectedOrderIds.length === orders.length;
+
+  const toggleOrderSelection = (orderId) => {
+    setSelectedOrderIds((currentIds) => (
+      currentIds.includes(orderId)
+        ? currentIds.filter((id) => id !== orderId)
+        : [...currentIds, orderId]
+    ));
+  };
+
+  const toggleAllOrders = () => {
+    setSelectedOrderIds(allOrdersSelected ? [] : orders.map((order) => order.id));
+  };
+
+  const deleteSelectedOrders = async () => {
+    if (selectedOrderIds.length === 0 || !window.confirm(`Supprimer ${selectedOrderIds.length} commande(s) sélectionnée(s) ? Cette action est irréversible.`)) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      const res = await fetch(`${apiBaseUrl}/api/orders`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': Bearer ,
+        },
+        body: JSON.stringify({ orderIds: selectedOrderIds }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Erreur lors de la suppression des commandes.');
+      }
+
+      setOrders((currentOrders) => currentOrders.filter((order) => !selectedOrderIds.includes(order.id)));
+      setSelectedOrderIds([]);
+    } catch (err) {
+      alert(err.message || 'Erreur réseau lors de la suppression.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -197,10 +244,36 @@ export default function AdminOrdersPage() {
         </div>
       ) : (
         <div className="glass-panel overflow-hidden border border-white/10 rounded-2xl bg-[#1e293b]/20">
+          <div className="flex items-center justify-between gap-4 border-b border-white/10 bg-white/5 px-6 py-4">
+            <label className="inline-flex items-center gap-3 text-sm text-slate-300">
+              <input
+                type="checkbox"
+                checked={allOrdersSelected}
+                onChange={toggleAllOrders}
+                aria-label="Sélectionner toutes les commandes"
+                className="h-4 w-4 accent-emerald-500"
+              />
+              {selectedOrderIds.length > 0
+                ? `${selectedOrderIds.length} commande(s) sélectionnée(s)`
+                : 'Sélectionner des commandes'}
+            </label>
+            <button
+              type="button"
+              onClick={deleteSelectedOrders}
+              disabled={selectedOrderIds.length === 0 || deleting}
+              className="inline-flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-400 transition-all hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Trash2 size={14} />
+              {deleting ? 'Suppression...' : 'Supprimer la sélection'}
+            </button>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-slate-300">
               <thead className="bg-white/5 text-slate-200 uppercase text-xs tracking-wider">
                 <tr>
+                  <th className="w-12 px-6 py-4">
+                    <span className="sr-only">Sélection</span>
+                  </th>
                   <th className="px-6 py-4">Commande</th>
                   <th className="px-6 py-4">Date</th>
                   <th className="px-6 py-4">Client</th>
@@ -213,6 +286,15 @@ export default function AdminOrdersPage() {
               <tbody className="divide-y divide-white/5">
                 {orders.map((order) => (
                   <tr key={order.id} className="hover:bg-white/5 transition-colors">
+                    <td className="px-6 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedOrderIds.includes(order.id)}
+                        onChange={() => toggleOrderSelection(order.id)}
+                        aria-label={`Sélectionner la commande ${order.tracking_code}`}
+                        className="h-4 w-4 accent-emerald-500"
+                      />
+                    </td>
                     <td className="px-6 py-4 font-bold text-white tracking-wider">
                       {order.tracking_code}
                     </td>

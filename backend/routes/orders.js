@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { Op } = require('sequelize');
 const { Order, OrderItem, Product } = require('../models');
 const {
   sendOrderConfirmationEmail,
@@ -243,6 +244,49 @@ router.put('/:id/status', authMiddleware, async (req, res) => {
     
     res.json(order);
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE selected orders (Protected)
+router.delete('/', authMiddleware, async (req, res) => {
+  const { orderIds } = req.body;
+
+  if (!Array.isArray(orderIds) || orderIds.length === 0 || orderIds.some((id) => typeof id !== 'string' || !id.trim())) {
+    return res.status(400).json({ error: 'Sélectionnez au moins une commande à supprimer.' });
+  }
+
+  const uniqueOrderIds = [...new Set(orderIds.map((id) => id.trim()))];
+  let transaction;
+
+  try {
+    transaction = await Order.sequelize.transaction();
+    const orders = await Order.findAll({
+      where: { id: { [Op.in]: uniqueOrderIds } },
+      attributes: ['id'],
+      transaction,
+    });
+
+    if (orders.length !== uniqueOrderIds.length) {
+      await transaction.rollback();
+      return res.status(404).json({ error: 'Une ou plusieurs commandes sont introuvables.' });
+    }
+
+    await OrderItem.destroy({
+      where: { order_id: { [Op.in]: uniqueOrderIds } },
+      transaction,
+    });
+    await Order.destroy({
+      where: { id: { [Op.in]: uniqueOrderIds } },
+      transaction,
+    });
+    await transaction.commit();
+
+    res.json({ message: `${uniqueOrderIds.length} commande(s) supprimée(s).`, deletedIds: uniqueOrderIds });
+  } catch (error) {
+    if (transaction) {
+      await transaction.rollback();
+    }
     res.status(500).json({ error: error.message });
   }
 });
